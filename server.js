@@ -1,9 +1,7 @@
-require('dotenv').config();
-
 const express = require('express');
-const mysql = require('mysql2/promise');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,17 +11,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Database configuration
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'quarm',
-  port: process.env.DB_PORT || 3306
-};
-
-// Create database pool
-const pool = mysql.createPool(dbConfig);
+// Load NPC data from JSON file
+console.log('Loading NPC data...');
+const npcData = JSON.parse(fs.readFileSync(path.join(__dirname, 'npc-data.json'), 'utf8'));
+console.log(`Loaded ${npcData.zones.length} zones with ${Object.keys(npcData.npcsByZone).length} zone datasets`);
 
 // NPC Class mapping
 const NPC_CLASSES = {
@@ -120,84 +111,55 @@ const CHARM_SPELLS = [
 // API Routes
 
 // Get all zones
-app.get('/api/zones', async (req, res) => {
-  try {
-    const [zones] = await pool.query(`
-      SELECT DISTINCT z.short_name, z.long_name 
-      FROM zone z
-      INNER JOIN spawn2 s ON z.short_name = s.zone
-      WHERE z.long_name IS NOT NULL 
-        AND z.long_name != ''
-      ORDER BY z.long_name
-    `);
-    res.json(zones);
-  } catch (error) {
-    console.error('Error fetching zones:', error);
-    res.status(500).json({ error: 'Failed to fetch zones' });
-  }
+app.get('/api/zones', (req, res) => {
+  res.json(npcData.zones);
 });
 
 // Get charm spells
-app.get('/api/charm-spells', async (req, res) => {
+app.get('/api/charm-spells', (req, res) => {
   res.json(CHARM_SPELLS);
 });
 
 // Get charmable NPCs for a zone
-app.get('/api/npcs/:zone', async (req, res) => {
+app.get('/api/npcs/:zone', (req, res) => {
   const { zone } = req.params;
   const { maxLevel, spellId } = req.query;
   
   try {
+    // Get NPCs for this zone
+    const zoneNpcs = npcData.npcsByZone[zone] || [];
+    
+    if (zoneNpcs.length === 0) {
+      return res.json([]);
+    }
+    
     // Find the charm spell to determine bodytype filtering
     const charmSpell = spellId ? CHARM_SPELLS.find(s => s.id === parseInt(spellId)) : null;
     
-    // Build bodytype exclusion conditions
-    // Always exclude: Trap (66), Timer (67), Atenha Ra (11)
-    let bodytypeCondition = 'AND n.bodytype NOT IN (11, 66, 67)';
+    // Filter NPCs
+    let filteredNpcs = zoneNpcs.filter(npc => {
+      // Basic filters
+      if (npc.hp <= 0 || npc.level <= 0) return false;
+      
+      // Level filter
+      if (maxLevel && npc.level > parseInt(maxLevel)) return false;
+      
+      // Exclude uncharmable NPCs (special_abilities code 14)
+      if (npc.special_abilities && npc.special_abilities.includes('14,1')) return false;
+      
+      // Bodytype filters - always exclude Trap (66), Timer (67), Atenha Ra (11)
+      if ([11, 66, 67].includes(npc.bodytype)) return false;
+      
+      // For Necromancer and Druid, also exclude Humanoid (1)
+      if (charmSpell && (charmSpell.bodytype === 'undead' || charmSpell.bodytype === 'animal')) {
+        if (npc.bodytype === 1) return false;
+      }
+      
+      return true;
+    });
     
-    // For Necromancer and Druid, also exclude Humanoid (1)
-    if (charmSpell && (charmSpell.bodytype === 'undead' || charmSpell.bodytype === 'animal')) {
-      bodytypeCondition = 'AND n.bodytype NOT IN (1, 11, 66, 67)';
-    }
-    
-    // Query to get NPCs from the specified zone
-    // Filters for charmable NPCs (level <= maxLevel, not charmed already, etc.)
-    const query = `
-      SELECT DISTINCT
-        n.id,
-        n.name,
-        n.level,
-        n.maxlevel,
-        n.hp,
-        n.mindmg,
-        n.maxdmg,
-        n.MR as magic_resist,
-        n.FR as fire_resist,
-        n.CR as cold_resist,
-        n.PR as poison_resist,
-        n.DR as disease_resist,
-        n.bodytype,
-        n.race,
-        n.class,
-        n.special_abilities
-      FROM npc_types n
-      INNER JOIN spawnentry se ON n.id = se.npcID
-      INNER JOIN spawngroup sg ON se.spawngroupID = sg.id
-      INNER JOIN spawn2 s ON sg.id = s.spawngroupID
-      WHERE s.zone = ?
-        ${maxLevel ? 'AND n.level <= ?' : ''}
-        AND n.hp > 0
-        AND n.level > 0
-        AND (n.special_abilities NOT LIKE '%^14,1%' OR n.special_abilities IS NULL)  -- Exclude uncharmable NPCs (code 14)
-        ${bodytypeCondition}
-      ORDER BY n.maxdmg DESC, n.level DESC, n.name
-    `;
-    
-    const params = maxLevel ? [zone, maxLevel] : [zone];
-    const [npcs] = await pool.query(query, params);
-    
-    // Calculate additional useful stats and add class name
-    const enrichedNpcs = npcs.map(npc => ({
+    // Enrich NPCs with additional data
+    const enrichedNpcs = filteredNpcs.map(npc => ({
       ...npc,
       class_name: NPC_CLASSES[npc.class] || 'Unknown',
       bodytype_name: NPC_BODYTYPES[npc.bodytype] || `Type ${npc.bodytype}`,
@@ -209,6 +171,13 @@ app.get('/api/npcs/:zone', async (req, res) => {
       hp_per_level: (npc.hp / npc.level).toFixed(0)
     }));
     
+    // Sort by max damage descending, then level descending
+    enrichedNpcs.sort((a, b) => {
+      if (b.maxdmg !== a.maxdmg) return b.maxdmg - a.maxdmg;
+      if (b.level !== a.level) return b.level - a.level;
+      return a.name.localeCompare(b.name);
+    });
+    
     res.json(enrichedNpcs);
   } catch (error) {
     console.error('Error fetching NPCs:', error);
@@ -217,13 +186,8 @@ app.get('/api/npcs/:zone', async (req, res) => {
 });
 
 // Health check
-app.get('/api/health', async (req, res) => {
-  try {
-    await pool.query('SELECT 1');
-    res.json({ status: 'ok', database: 'connected' });
-  } catch (error) {
-    res.status(500).json({ status: 'error', database: 'disconnected', error: error.message });
-  }
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', dataSource: 'json', zones: npcData.zones.length });
 });
 
 // Serve the frontend
@@ -234,12 +198,11 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`EQ Pet Finder running on http://localhost:${PORT}`);
-  console.log(`Database: ${dbConfig.database}@${dbConfig.host}`);
+  console.log(`Data source: JSON file (${npcData.zones.length} zones)`);
 });
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
+process.on('SIGINT', () => {
   console.log('\nShutting down gracefully...');
-  await pool.end();
   process.exit(0);
 });

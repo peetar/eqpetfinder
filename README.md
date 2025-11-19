@@ -5,19 +5,24 @@ A web application for finding the best charm pets in EverQuest (Quarm server) ba
 ## Features
 
 - **Zone Selection**: Browse all available zones with spawned NPCs
-- **Charm Spell Selection**: Choose from various charm spells (defaults to Boltran's Agacerie, max level 53)
+- **Charm Spell Selection**: Choose from charm spells across multiple classes:
+  - Enchanter (9 spells)
+  - Bard (3 spells)
+  - Necromancer (7 undead-only spells)
+  - Druid (8 animal-only spells)
 - **NPC Statistics**: View detailed stats for charmable NPCs including:
-  - Level, HP, and damage output
-  - Magic Resist (MR) - crucial for charm success
-  - AC, ATK, and attack speed
-  - Base stats (STR, DEX, AGI)
-  - Calculated DPS and average damage
+  - Level range (min-max) with warnings for NPCs that can spawn above charm level
+  - HP and max damage output
+  - Magic Resist (MR) - crucial for charm success (color-coded, warnings for MR > 80)
+  - Body Type (Animal, Undead, Humanoid, Giant, etc.)
+  - Class information
+  - Summon ability warnings
+  - Links to pqdi.cc NPC database
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
-- MySQL Server
-- Quarm database dump (included in `dump/` directory)
+- **No database required!** All data is stored in JSON format
 
 ## Installation
 
@@ -28,25 +33,7 @@ A web application for finding the best charm pets in EverQuest (Quarm server) ba
    npm install
    ```
 
-3. **Set up the database:**
-   - Follow instructions in `database-setup.md`
-   - Create a MySQL database named `quarm`
-   - Import the SQL files in order:
-     ```sql
-     SOURCE dump/quarm_2025-11-02-07_55/quarm_2025-11-02-07_55.sql;
-     SOURCE dump/quarm_2025-11-02-07_55/player_tables_2025-11-02-07_55.sql;
-     SOURCE dump/quarm_2025-11-02-07_55/login_tables_2025-11-02-07_55.sql;
-     ```
-
-4. **Configure environment:**
-   - Copy `.env.example` to `.env`
-   - Update database credentials:
-     ```
-     DB_HOST=localhost
-     DB_USER=root
-     DB_PASSWORD=your_password
-     DB_NAME=quarm
-     ```
+3. **That's it!** The NPC data is included in `npc-data.json` (6.5 MB)
 
 ## Usage
 
@@ -67,21 +54,36 @@ A web application for finding the best charm pets in EverQuest (Quarm server) ba
    - Select a zone from the dropdown
    - Choose a charm spell (defaults to Boltran's Agacerie)
    - Click "Search for Charm Pets"
-   - Browse the results sorted by level
+   - Browse the results sorted by max damage
+
+## Deployment
+
+This app is ready to deploy to Vercel with zero configuration:
+
+```bash
+vercel
+```
+
+The JSON data file is included in the repository, so no external database is needed.
 
 ## How It Works
 
-The application queries the Quarm database to find NPCs that meet the following criteria:
+The application filters NPCs from `npc-data.json` based on:
 - Located in the selected zone
 - Level is at or below the charm spell's maximum level
-- Body type is Humanoid (1) or Animal (21)
+- Body type filtering:
+  - Always excludes: Trap, Timer, Atenha Ra
+  - Necromancer spells: Also exclude Humanoid (undead only)
+  - Druid spells: Also exclude Humanoid (animal only)
+- Excludes uncharmable NPCs (special ability code 14)
 - Has positive HP and level
 
-Results show key statistics to help you choose the best charm pet:
-- **Magic Resist (MR)**: Lower is better for charm success (color-coded)
-- **Max Hit & DPS**: Higher damage output is better
+Results show key statistics:
+- **Level Range**: Shows if NPC can spawn above charm level (⚠️)
+- **Magic Resist (MR)**: Lower is better, warnings for MR > 80 (⚠️)
+- **Summon**: Warning if NPC can summon (⚠️)
+- **Max Hit**: Higher damage output is better
 - **HP**: More hit points means the pet survives longer
-- **Stats**: STR, DEX, AGI affect combat performance
 
 ## Project Structure
 
@@ -89,14 +91,14 @@ Results show key statistics to help you choose the best charm pet:
 eqpetfinder/
 ├── server.js              # Express backend API
 ├── package.json           # Node.js dependencies
-├── .env                   # Environment configuration (create from .env.example)
-├── database-setup.md      # Database setup instructions
+├── npc-data.json          # NPC data (6.5 MB, 15k+ NPCs)
+├── export-data.js         # Script to export data from MySQL (optional)
+├── vercel.json            # Vercel deployment config
 ├── public/                # Frontend files
 │   ├── index.html         # Main HTML page
 │   ├── styles.css         # Styling
 │   └── app.js             # Frontend JavaScript
-└── dump/                  # Quarm database dump
-    └── quarm_2025-11-02-07_55/
+└── dump/                  # Original MySQL dump (not needed for running app)
 ```
 
 ## API Endpoints
