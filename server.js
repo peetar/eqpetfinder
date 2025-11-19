@@ -147,12 +147,22 @@ app.get('/api/npcs/:zone', (req, res) => {
       // Exclude uncharmable NPCs (special_abilities code 14)
       if (npc.special_abilities && npc.special_abilities.includes('14,1')) return false;
       
+      // Exclude merchants and bankers (classes 20, 21, 40, 41, 60, 61)
+      if ([20, 21, 40, 41, 60, 61].includes(npc.class)) return false;
+      
       // Bodytype filters - always exclude Trap (66), Timer (67), Atenha Ra (11)
       if ([11, 66, 67].includes(npc.bodytype)) return false;
       
-      // For Necromancer and Druid, also exclude Humanoid (1)
-      if (charmSpell && (charmSpell.bodytype === 'undead' || charmSpell.bodytype === 'animal')) {
-        if (npc.bodytype === 1) return false;
+      // Class-specific bodytype filtering
+      if (charmSpell) {
+        if (charmSpell.bodytype === 'undead') {
+          // Necromancer: only show Undead (3)
+          if (npc.bodytype !== 3) return false;
+        } else if (charmSpell.bodytype === 'animal') {
+          // Druid: only show Animal (21)
+          if (npc.bodytype !== 21) return false;
+        }
+        // Enchanter/Bard: show all (already filtered Trap, Timer, Atenha Ra above)
       }
       
       return true;
