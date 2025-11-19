@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EQ Charm Pet Finder - Quarm</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ EverQuest Charm Pet Finder</h1>
+            <p class="subtitle">Find the best charm pets in any zone (Quarm Server)</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="zone-select">Zone:</label>
+                <select id="zone-select">
+                    <option value="">-- Select a Zone --</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="charm-spell-select">Charm Spell:</label>
+                <select id="charm-spell-select">
+                    <option value="">-- Select a Charm Spell --</option>
+                </select>
+            </div>
+
+            <button id="search-btn" class="btn-primary" disabled>Search for Charm Pets</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading NPCs...</p>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <div class="results-header">
+                <h2>Charmable NPCs</h2>
+                <div class="results-info">
+                    <span id="npc-count">0 NPCs found</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="npc-table">
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Body Type</th>
+                            <th>Summon</th>
+                            <th>HP</th>
+                            <th>Max Hit</th>
+                            <th>MR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="npc-tbody">
+                        <!-- NPCs will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="no-results" class="no-results" style="display: none;">
+            <p>No charmable NPCs found for the selected criteria.</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <p>Error loading data. Please check your database connection.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>EverQuest Charm Pet Finder | Quarm Database</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
