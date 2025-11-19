@@ -1,5 +1,5 @@
-// API base URL
-const API_URL = 'http://localhost:3000/api';
+// API base URL - use relative path to work on both local and Vercel
+const API_URL = '/api';
 
 // DOM elements
 const zoneSelect = document.getElementById('zone-select');
