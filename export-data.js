@@ -38,6 +38,8 @@ async function exportData() {
         n.hp,
         n.mindmg,
         n.maxdmg,
+        n.attack_delay,
+        n.runspeed,
         n.MR as magic_resist,
         n.FR as fire_resist,
         n.CR as cold_resist,
@@ -55,6 +57,7 @@ async function exportData() {
       WHERE n.hp > 0
         AND n.level > 0
         AND n.bodytype NOT IN (11, 66, 67)
+        AND n.runspeed > 0
     `);
     console.log(`Found ${npcs.length} NPC spawn records`);
     

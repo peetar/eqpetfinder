@@ -15,10 +15,13 @@
 
         <div class="controls">
             <div class="control-group">
-                <label for="zone-select">Zone:</label>
-                <select id="zone-select">
-                    <option value="">-- Select a Zone --</option>
-                </select>
+                <label for="zone-search">Zone:</label>
+                <div class="zone-selector">
+                    <input type="text" id="zone-search" placeholder="Search zones...">
+                    <select id="zone-select" size="8">
+                        <option value="">-- Select a Zone --</option>
+                    </select>
+                </div>
             </div>
 
             <div class="control-group">
@@ -48,14 +51,16 @@
                 <table id="npc-table">
                     <thead>
                         <tr>
-                            <th>Level</th>
-                            <th>Name</th>
-                            <th>Class</th>
-                            <th>Body Type</th>
-                            <th>Summon</th>
-                            <th>HP</th>
-                            <th>Max Hit</th>
-                            <th>MR</th>
+                            <th class="sortable" data-sort="level">Level <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="name">Name <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="class">Class <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="bodytype">Body Type <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="summon">Summon <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="hp">HP <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="maxdmg">Max Hit <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="delay">Delay <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="dps">DPS <span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="mr">MR <span class="sort-arrow"></span></th>
                         </tr>
                     </thead>
                     <tbody id="npc-tbody">

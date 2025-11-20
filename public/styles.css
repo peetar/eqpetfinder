@@ -59,6 +59,46 @@ h1 {
     color: #1e3c72;
 }
 
+.zone-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#zone-search {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+#zone-search:focus {
+    outline: none;
+    border-color: #1e3c72;
+}
+
+#zone-select {
+    width: 100%;
+    padding: 8px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.95em;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+#zone-select:hover {
+    border-color: #2a5298;
+}
+
+#zone-select:focus {
+    outline: none;
+    border-color: #1e3c72;
+}
+
 select {
     width: 100%;
     padding: 12px;
@@ -167,6 +207,20 @@ th {
     text-align: left;
     font-weight: 600;
     white-space: nowrap;
+}
+
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable:hover {
+    background: #2a5298;
+}
+
+.sort-arrow {
+    font-size: 0.8em;
+    margin-left: 5px;
 }
 
 tbody tr {

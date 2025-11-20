@@ -15,6 +15,8 @@ const npcCount = document.getElementById('npc-count');
 // State
 let zones = [];
 let charmSpells = [];
+let currentNpcs = [];
+let currentSort = { column: 'dps', direction: 'desc' };
 
 // Initialize the app
 async function init() {
@@ -35,16 +37,30 @@ async function loadZones() {
         
         zones = await response.json();
         
-        zones.forEach(zone => {
-            const option = document.createElement('option');
-            option.value = zone.short_name;
-            option.textContent = zone.long_name;
-            zoneSelect.appendChild(option);
+        // Sort zones ignoring "The" prefix
+        zones.sort((a, b) => {
+            const aName = a.long_name.replace(/^The\s+/i, '');
+            const bName = b.long_name.replace(/^The\s+/i, '');
+            return aName.localeCompare(bName);
         });
+        
+        // Populate zone select
+        populateZones(zones);
     } catch (error) {
         console.error('Error loading zones:', error);
         throw error;
     }
+}
+
+// Populate zone dropdown
+function populateZones(zonesToShow) {
+    zoneSelect.innerHTML = '<option value="">-- Select a Zone --</option>';
+    zonesToShow.forEach(zone => {
+        const option = document.createElement('option');
+        option.value = zone.short_name;
+        option.textContent = zone.long_name;
+        zoneSelect.appendChild(option);
+    });
 }
 
 // Load charm spells from API
@@ -76,6 +92,18 @@ async function loadCharmSpells() {
 
 // Setup event listeners
 function setupEventListeners() {
+    const zoneSearch = document.getElementById('zone-search');
+    
+    // Zone search filter
+    zoneSearch.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredZones = zones.filter(zone => 
+            zone.long_name.toLowerCase().includes(searchTerm) ||
+            zone.short_name.toLowerCase().includes(searchTerm)
+        );
+        populateZones(filteredZones);
+    });
+    
     zoneSelect.addEventListener('change', updateSearchButton);
     charmSpellSelect.addEventListener('change', updateSearchButton);
     searchBtn.addEventListener('click', searchNPCs);
@@ -125,14 +153,36 @@ async function searchNPCs() {
 
 // Display NPCs in table
 function displayNPCs(npcs) {
+    // Store current NPCs for sorting
+    currentNpcs = npcs.map(npc => {
+        const delay = npc.attack_delay || 30;
+        const avgDmg = (npc.mindmg + npc.maxdmg) / 2;
+        const dps = parseFloat((avgDmg / delay * 10).toFixed(1));
+        return { ...npc, delay, dps };
+    });
+    
+    // Sort by default (DPS descending)
+    sortNPCs(currentSort.column, currentSort.direction, false);
+    
+    // Setup sort handlers
+    setupSortHandlers();
+    
+    renderNPCs();
+}
+
+// Render NPCs to table
+function renderNPCs() {
     // Clear existing rows
     npcTbody.innerHTML = '';
     
     // Update count
-    npcCount.textContent = `${npcs.length} NPC${npcs.length !== 1 ? 's' : ''} found`;
+    npcCount.textContent = `${currentNpcs.length} NPC${currentNpcs.length !== 1 ? 's' : ''} found`;
+    
+    // Update sort arrows
+    updateSortArrows();
     
     // Add rows
-    npcs.forEach(npc => {
+    currentNpcs.forEach(npc => {
         const row = document.createElement('tr');
         
         // Determine stat classes based on values
@@ -149,6 +199,8 @@ function displayNPCs(npcs) {
             <td>${npc.has_summon ? '⚠️ Yes' : 'No'}</td>
             <td>${npc.hp.toLocaleString()}</td>
             <td>${npc.maxdmg}</td>
+            <td>${npc.delay}</td>
+            <td>${npc.dps}</td>
             <td class="${mrClass}">${mrWarning}${npc.magic_resist}</td>
         `;
         
@@ -158,11 +210,97 @@ function displayNPCs(npcs) {
     resultsDiv.style.display = 'block';
 }
 
-// Get MR class for color coding
+// Setup sort handlers
+function setupSortHandlers() {
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.onclick = () => {
+            const column = th.dataset.sort;
+            const newDirection = (currentSort.column === column && currentSort.direction === 'desc') ? 'asc' : 'desc';
+            sortNPCs(column, newDirection);
+        };
+    });
+}
+
+// Sort NPCs
+function sortNPCs(column, direction, rerender = true) {
+    currentSort = { column, direction };
+    
+    currentNpcs.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+            case 'level':
+                aVal = a.level;
+                bVal = b.level;
+                break;
+            case 'name':
+                aVal = a.name.toLowerCase();
+                bVal = b.name.toLowerCase();
+                break;
+            case 'class':
+                aVal = a.class_name;
+                bVal = b.class_name;
+                break;
+            case 'bodytype':
+                aVal = a.bodytype_name;
+                bVal = b.bodytype_name;
+                break;
+            case 'summon':
+                aVal = a.has_summon ? 1 : 0;
+                bVal = b.has_summon ? 1 : 0;
+                break;
+            case 'hp':
+                aVal = a.hp;
+                bVal = b.hp;
+                break;
+            case 'maxdmg':
+                aVal = a.maxdmg;
+                bVal = b.maxdmg;
+                break;
+            case 'delay':
+                aVal = a.delay;
+                bVal = b.delay;
+                break;
+            case 'dps':
+                aVal = a.dps;
+                bVal = b.dps;
+                break;
+            case 'mr':
+                aVal = a.magic_resist;
+                bVal = b.magic_resist;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof aVal === 'string') {
+            return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return direction === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+    });
+    
+    if (rerender) renderNPCs();
+}
+
+// Update sort arrows
+function updateSortArrows() {
+    document.querySelectorAll('.sortable').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (th.dataset.sort === currentSort.column) {
+            arrow.textContent = currentSort.direction === 'asc' ? ' ▲' : ' ▼';
+        } else {
+            arrow.textContent = '';
+        }
+    });
+}
+
+// Get MR class for color coding (reversed: low MR = good/green, high MR = bad/red)
 function getMRClass(mr) {
-    if (mr <= 50) return 'stat-poor';
-    if (mr <= 100) return 'stat-medium';
-    return 'stat-good';
+    if (mr <= 50) return 'stat-good';   // Low MR = green (good for charm)
+    if (mr <= 100) return 'stat-medium'; // Medium MR = yellow
+    return 'stat-poor';                  // High MR = red (bad for charm)
 }
 
 // Get HP class for color coding
