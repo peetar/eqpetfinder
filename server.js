@@ -6,6 +6,58 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const SPECIAL_ABILITY = {
+  SUMMON: 1,
+  ENRAGE: 2,
+  FLURRY: 5,
+  DO_NOT_EQUIP: 8,
+  UNCHARMABLE: 14,
+  UNMEZZABLE: 13,
+  UNSTUNABLE: 15,
+  UNSNARABLE: 16
+};
+
+const OTHER_ABILITY_CONFIG = [
+  { code: SPECIAL_ABILITY.FLURRY, key: 'flurry', label: 'Flurry', shortLabel: 'FL' },
+  { code: SPECIAL_ABILITY.ENRAGE, key: 'enrage', label: 'Enrage', shortLabel: 'EN' },
+  { code: SPECIAL_ABILITY.DO_NOT_EQUIP, key: 'do_not_equip', label: 'Do Not Equip', shortLabel: 'NE' },
+  { code: SPECIAL_ABILITY.UNMEZZABLE, key: 'unmezzable', label: 'Unmezzable', shortLabel: 'MZ' },
+  { code: SPECIAL_ABILITY.UNSTUNABLE, key: 'unstunable', label: 'Unstunable', shortLabel: 'ST' },
+  { code: SPECIAL_ABILITY.UNSNARABLE, key: 'unsnarable', label: 'Unsnarable', shortLabel: 'SN' }
+];
+
+function parseSpecialAbilities(specialAbilities) {
+  if (!specialAbilities) {
+    return new Map();
+  }
+
+  const parsed = new Map();
+
+  specialAbilities
+    .split('^')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .forEach(part => {
+      const [codeText, enabledText = '1'] = part.split(',');
+      const code = parseInt(codeText, 10);
+      const enabled = parseInt(enabledText, 10);
+
+      if (!Number.isNaN(code)) {
+        parsed.set(code, Number.isNaN(enabled) ? 1 : enabled);
+      }
+    });
+
+  return parsed;
+}
+
+function hasSpecialAbility(parsedAbilities, code) {
+  return (parsedAbilities.get(code) || 0) > 0;
+}
+
+function getOtherAbilities(npc, parsedAbilities) {
+  return OTHER_ABILITY_CONFIG.filter(ability => hasSpecialAbility(parsedAbilities, ability.code));
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -169,17 +221,23 @@ app.get('/api/npcs/:zone', (req, res) => {
     });
     
     // Enrich NPCs with additional data
-    const enrichedNpcs = filteredNpcs.map(npc => ({
-      ...npc,
-      class_name: NPC_CLASSES[npc.class] || 'Unknown',
-      bodytype_name: NPC_BODYTYPES[npc.bodytype] || `Type ${npc.bodytype}`,
-      level_range: npc.maxlevel > npc.level ? `${npc.level}-${npc.maxlevel}` : `${npc.level}`,
-      exceeds_charm_level: maxLevel && npc.maxlevel > parseInt(maxLevel),
-      has_summon: npc.special_abilities ? 
-        (npc.special_abilities.startsWith('1,1') || npc.special_abilities.includes('^1,1')) : 
-        false,
-      hp_per_level: (npc.hp / npc.level).toFixed(0)
-    }));
+    const enrichedNpcs = filteredNpcs.map(npc => {
+      const parsedAbilities = parseSpecialAbilities(npc.special_abilities);
+
+      return {
+        ...npc,
+        class_name: NPC_CLASSES[npc.class] || 'Unknown',
+        bodytype_name: NPC_BODYTYPES[npc.bodytype] || `Type ${npc.bodytype}`,
+        level_range: npc.maxlevel > npc.level ? `${npc.level}-${npc.maxlevel}` : `${npc.level}`,
+        exceeds_charm_level: maxLevel && npc.maxlevel > parseInt(maxLevel),
+        has_summon: hasSpecialAbility(parsedAbilities, SPECIAL_ABILITY.SUMMON),
+        hp_per_level: (npc.hp / npc.level).toFixed(0),
+        strength: typeof npc.strength === 'number' ? npc.strength : null,
+        attack: typeof npc.attack === 'number' ? npc.attack : null,
+        accuracy: typeof npc.accuracy === 'number' ? npc.accuracy : null,
+        other_abilities: getOtherAbilities(npc, parsedAbilities)
+      };
+    });
     
     // Sort by max damage descending, then level descending
     enrichedNpcs.sort((a, b) => {

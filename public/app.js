@@ -11,12 +11,23 @@ const noResultsDiv = document.getElementById('no-results');
 const errorDiv = document.getElementById('error');
 const npcTbody = document.getElementById('npc-tbody');
 const npcCount = document.getElementById('npc-count');
+const npcTable = document.getElementById('npc-table');
+
+const DEFAULT_CHARM_CHANGE_DATE = new Date('2026-10-02T00:00:00');
+const DEFAULT_CHARM_SPELL_BEFORE = "Boltran's Agacerie";
+const DEFAULT_CHARM_SPELL_AFTER = 'Command of Druzzil';
+const STAT_BADGE_META = {
+    strength: { label: 'STR', positive: 'STR+', negative: 'STR-' },
+    attack: { label: 'ATK', positive: 'ATK+', negative: 'ATK-' },
+    accuracy: { label: 'ACC', positive: 'ACC+', negative: 'ACC-' }
+};
 
 // State
 let zones = [];
 let charmSpells = [];
 let currentNpcs = [];
 let currentSort = { column: 'dps', direction: 'desc' };
+let currentAverages = { strength: null, attack: null, accuracy: null };
 
 // Initialize the app
 async function init() {
@@ -70,6 +81,7 @@ async function loadCharmSpells() {
         if (!response.ok) throw new Error('Failed to fetch charm spells');
         
         charmSpells = await response.json();
+        const defaultSpellName = getDefaultCharmSpellName();
         
         charmSpells.forEach(spell => {
             const option = document.createElement('option');
@@ -77,17 +89,24 @@ async function loadCharmSpells() {
             option.dataset.maxLevel = spell.maxLevel;
             option.textContent = `${spell.name} (Max Level: ${spell.maxLevel})`;
             
-            // Default to Boltran's Agacerie
-            if (spell.name === "Boltran's Agacerie") {
+            if (spell.name === defaultSpellName) {
                 option.selected = true;
             }
             
             charmSpellSelect.appendChild(option);
         });
+
+        updateSearchButton();
     } catch (error) {
         console.error('Error loading charm spells:', error);
         throw error;
     }
+}
+
+function getDefaultCharmSpellName() {
+    return new Date() >= DEFAULT_CHARM_CHANGE_DATE
+        ? DEFAULT_CHARM_SPELL_AFTER
+        : DEFAULT_CHARM_SPELL_BEFORE;
 }
 
 // Setup event listeners
@@ -160,6 +179,7 @@ function displayNPCs(npcs) {
         const dps = parseFloat((avgDmg / delay * 10).toFixed(1));
         return { ...npc, delay, dps };
     });
+    currentAverages = calculateAverages(currentNpcs);
     
     // Sort by default (DPS descending)
     sortNPCs(currentSort.column, currentSort.direction, false);
@@ -190,24 +210,80 @@ function renderNPCs() {
         const hpClass = getHPClass(npc.hp, npc.level);
         const levelWarning = npc.exceeds_charm_level ? '⚠️ ' : '';
         const mrWarning = npc.magic_resist > 80 ? '⚠️ ' : '';
+        const abilityBadges = renderAbilityBadges(npc.other_abilities || []);
+        const statBadges = renderStatBadges(npc, currentAverages);
         
         row.innerHTML = `
-            <td class="level-cell">${levelWarning}${npc.level_range}</td>
-            <td class="npc-name"><a href="https://www.pqdi.cc/npc/${npc.id}" target="_blank" rel="noopener noreferrer">${escapeHtml(npc.name)}</a></td>
-            <td>${npc.class_name}</td>
-            <td>${npc.bodytype_name}</td>
-            <td>${npc.has_summon ? '⚠️ Yes' : 'No'}</td>
-            <td>${npc.hp.toLocaleString()}</td>
-            <td>${npc.maxdmg}</td>
-            <td>${npc.delay}</td>
-            <td>${npc.dps}</td>
-            <td class="${mrClass}">${mrWarning}${npc.magic_resist}</td>
+            <td class="level-cell col-level">${levelWarning}${npc.level_range}</td>
+            <td class="npc-name col-name"><a href="https://www.pqdi.cc/npc/${npc.id}" target="_blank" rel="noopener noreferrer">${escapeHtml(npc.name)}</a></td>
+            <td class="col-class">${npc.class_name}</td>
+            <td class="col-bodytype">${npc.bodytype_name}</td>
+            <td class="col-summon">${npc.has_summon ? '⚠️ Yes' : 'No'}</td>
+            <td class="col-hp">${npc.hp.toLocaleString()}</td>
+            <td class="col-maxdmg">${npc.maxdmg}</td>
+            <td class="col-delay">${npc.delay}</td>
+            <td class="col-dps">${npc.dps}</td>
+            <td class="col-mr ${mrClass}">${mrWarning}${npc.magic_resist}</td>
+            <td>${abilityBadges}</td>
+            <td>${statBadges}</td>
         `;
         
         npcTbody.appendChild(row);
     });
     
     resultsDiv.style.display = 'block';
+}
+
+function calculateAverages(npcs) {
+    const statKeys = Object.keys(STAT_BADGE_META);
+    const averages = {};
+
+    statKeys.forEach(key => {
+        const values = npcs
+            .map(npc => npc[key])
+            .filter(value => typeof value === 'number' && !Number.isNaN(value));
+
+        averages[key] = values.length
+            ? values.reduce((sum, value) => sum + value, 0) / values.length
+            : null;
+    });
+
+    return averages;
+}
+
+function renderAbilityBadges(abilities) {
+    if (!abilities.length) {
+        return '<span class="muted-cell">—</span>';
+    }
+
+    return abilities
+        .map(ability => renderBadge(ability.shortLabel, ability.label, `ability-badge ability-badge-${ability.key.replace(/_/g, '-')}`))
+        .join('');
+}
+
+function renderStatBadges(npc, averages) {
+    const badges = Object.entries(STAT_BADGE_META)
+        .map(([key, meta]) => {
+            const value = npc[key];
+            const average = averages[key];
+
+            if (typeof value !== 'number' || Number.isNaN(value) || typeof average !== 'number' || Number.isNaN(average) || value === average) {
+                return '';
+            }
+
+            const isAboveAverage = value > average;
+            const label = isAboveAverage ? meta.positive : meta.negative;
+            const title = `${meta.label} ${isAboveAverage ? 'Above' : 'Below'} Average (${value} vs ${average.toFixed(1)})`;
+
+            return renderBadge(label, title, `stat-badge ${isAboveAverage ? 'stat-badge-positive' : 'stat-badge-negative'}`);
+        })
+        .filter(Boolean);
+
+    return badges.length ? badges.join('') : '<span class="muted-cell">—</span>';
+}
+
+function renderBadge(text, title, className) {
+    return `<span class="${className}" title="${escapeHtml(title)}">${escapeHtml(text)}</span>`;
 }
 
 // Setup sort handlers
@@ -286,6 +362,8 @@ function sortNPCs(column, direction, rerender = true) {
 
 // Update sort arrows
 function updateSortArrows() {
+    npcTable.dataset.sortedColumn = currentSort.column;
+
     document.querySelectorAll('.sortable').forEach(th => {
         const arrow = th.querySelector('.sort-arrow');
         if (th.dataset.sort === currentSort.column) {

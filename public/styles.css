@@ -218,6 +218,29 @@ th.sortable:hover {
     background: #2a5298;
 }
 
+#npc-table[data-sorted-column="level"] th[data-sort="level"],
+#npc-table[data-sorted-column="level"] td.col-level,
+#npc-table[data-sorted-column="name"] th[data-sort="name"],
+#npc-table[data-sorted-column="name"] td.col-name,
+#npc-table[data-sorted-column="class"] th[data-sort="class"],
+#npc-table[data-sorted-column="class"] td.col-class,
+#npc-table[data-sorted-column="bodytype"] th[data-sort="bodytype"],
+#npc-table[data-sorted-column="bodytype"] td.col-bodytype,
+#npc-table[data-sorted-column="summon"] th[data-sort="summon"],
+#npc-table[data-sorted-column="summon"] td.col-summon,
+#npc-table[data-sorted-column="hp"] th[data-sort="hp"],
+#npc-table[data-sorted-column="hp"] td.col-hp,
+#npc-table[data-sorted-column="maxdmg"] th[data-sort="maxdmg"],
+#npc-table[data-sorted-column="maxdmg"] td.col-maxdmg,
+#npc-table[data-sorted-column="delay"] th[data-sort="delay"],
+#npc-table[data-sorted-column="delay"] td.col-delay,
+#npc-table[data-sorted-column="dps"] th[data-sort="dps"],
+#npc-table[data-sorted-column="dps"] td.col-dps,
+#npc-table[data-sorted-column="mr"] th[data-sort="mr"],
+#npc-table[data-sorted-column="mr"] td.col-mr {
+    background: rgba(42, 82, 152, 0.12);
+}
+
 .sort-arrow {
     font-size: 0.8em;
     margin-left: 5px;
@@ -234,6 +257,7 @@ tbody tr:hover {
 
 td {
     padding: 12px 10px;
+    vertical-align: top;
 }
 
 .npc-name {
@@ -270,6 +294,59 @@ td {
 .stat-poor {
     color: #dc3545;
     font-weight: 600;
+}
+
+.ability-badge,
+.stat-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    margin: 2px 6px 2px 0;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.ability-badge {
+    background: #e9f1ff;
+    color: #1e3c72;
+    border: 1px solid #c9dafc;
+}
+
+.ability-badge-flurry {
+    background: #e8f7ec;
+    border-color: #b7e2c2;
+    color: #1f7a34;
+}
+
+.ability-badge-do-not-equip {
+    background: #fff1f1;
+    border-color: #f3c4c4;
+    color: #b42318;
+}
+
+.stat-badge {
+    border: 1px solid transparent;
+}
+
+.stat-badge-positive {
+    background: #e8f7ec;
+    border-color: #b7e2c2;
+    color: #1f7a34;
+}
+
+.stat-badge-negative {
+    background: #fff1f1;
+    border-color: #f3c4c4;
+    color: #b42318;
+}
+
+.muted-cell {
+    color: #999;
 }
 
 .no-results {

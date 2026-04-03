@@ -14,6 +14,8 @@ A web application for finding the best charm pets in EverQuest (Quarm server) ba
   - Level range (min-max) with warnings for NPCs that can spawn above charm level
   - HP and max damage output
   - Magic Resist (MR) - crucial for charm success (color-coded, warnings for MR > 80)
+   - Other abilities with compact hoverable badges (Flurry, Enrage, Dual Wield, key immunities, and future no-equip support when present in exported data)
+   - Other stat comparisons for STR, ATK, and Accuracy against the current result set average
   - Body Type (Animal, Undead, Humanoid, Giant, etc.)
   - Class information
   - Summon ability warnings
@@ -52,7 +54,7 @@ A web application for finding the best charm pets in EverQuest (Quarm server) ba
 
 3. **Find charm pets:**
    - Select a zone from the dropdown
-   - Choose a charm spell (defaults to Boltran's Agacerie)
+   - Choose a charm spell (defaults to Boltran's Agacerie until after October 1, 2026, then Command of Druzzil)
    - Click "Search for Charm Pets"
    - Browse the results sorted by max damage
 

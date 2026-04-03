@@ -49,6 +49,9 @@ async function exportData() {
         n.race,
         n.class,
         n.special_abilities,
+        n.STR as strength,
+        n.ATK as attack,
+        n.Accuracy as accuracy,
         s.zone
       FROM npc_types n
       INNER JOIN spawnentry se ON n.id = se.npcID
