@@ -125,39 +125,39 @@ const NPC_BODYTYPES = {
 // Charm spell data
 const CHARM_SPELLS = [
   // Enchanter
-  { id: 1, name: "Command of Druzzil", maxLevel: 64, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 2, name: "Dictate", maxLevel: 58, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 3, name: "Beckon", maxLevel: 57, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 4, name: "Boltran's Agacerie", maxLevel: 53, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 5, name: "Allure", maxLevel: 51, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 6, name: "Cajoling Whispers", maxLevel: 46, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 7, name: "Dire Charm", maxLevel: 46, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 8, name: "Beguile", maxLevel: 37, classes: ['Enchanter'], bodytype: 'any' },
-  { id: 9, name: "Charm", maxLevel: 25, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 1, name: "Command of Druzzil", maxLevel: 64, levelRequired: 64, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 2, name: "Dictate", maxLevel: 58, levelRequired: 58, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 3, name: "Beckon", maxLevel: 57, levelRequired: 57, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 4, name: "Boltran's Agacerie", maxLevel: 53, levelRequired: 53, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 5, name: "Allure", maxLevel: 51, levelRequired: 49, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 6, name: "Cajoling Whispers", maxLevel: 46, levelRequired: 39, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 7, name: "Dire Charm", maxLevel: 46, levelRequired: 59, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 8, name: "Beguile", maxLevel: 37, levelRequired: 29, classes: ['Enchanter'], bodytype: 'any' },
+  { id: 9, name: "Charm", maxLevel: 25, levelRequired: 12, classes: ['Enchanter'], bodytype: 'any' },
   
   // Bard
-  { id: 10, name: "Call of the Banshee", maxLevel: 57, classes: ['Bard'], bodytype: 'any' },
-  { id: 11, name: "Solon's Bewitching Bravura", maxLevel: 51, classes: ['Bard'], bodytype: 'any' },
-  { id: 12, name: "Solon's Song of the Sirens", maxLevel: 37, classes: ['Bard'], bodytype: 'any' },
+  { id: 10, name: "Call of the Banshee", maxLevel: 57, levelRequired: 57, classes: ['Bard'], bodytype: 'any' },
+  { id: 11, name: "Solon's Bewitching Bravura", maxLevel: 51, levelRequired: 51, classes: ['Bard'], bodytype: 'any' },
+  { id: 12, name: "Solon's Song of the Sirens", maxLevel: 37, levelRequired: 27, classes: ['Bard'], bodytype: 'any' },
   
   // Necromancer (Undead only)
-  { id: 13, name: "Word of Terris (undead)", maxLevel: 60, classes: ['Necromancer'], bodytype: 'undead' },
-  { id: 14, name: "Enslave Death (undead)", maxLevel: 55, classes: ['Necromancer'], bodytype: 'undead' },
-  { id: 15, name: "Thrall of Bones (undead)", maxLevel: 53, classes: ['Necromancer'], bodytype: 'undead' },
-  { id: 16, name: "Cajole Undead (undead)", maxLevel: 51, classes: ['Necromancer'], bodytype: 'undead' },
-  { id: 17, name: "Beguile Undead (undead)", maxLevel: 46, classes: ['Necromancer'], bodytype: 'undead' },
-  { id: 18, name: "Dire Charm (undead)", maxLevel: 46, classes: ['Necromancer'], bodytype: 'undead' },
-  { id: 19, name: "Dominate Undead (undead)", maxLevel: 32, classes: ['Necromancer'], bodytype: 'undead' },
+  { id: 13, name: "Word of Terris (undead)", maxLevel: 60, levelRequired: 60, classes: ['Necromancer'], bodytype: 'undead' },
+  { id: 14, name: "Enslave Death (undead)", maxLevel: 55, levelRequired: 55, classes: ['Necromancer'], bodytype: 'undead' },
+  { id: 15, name: "Thrall of Bones (undead)", maxLevel: 53, levelRequired: 53, classes: ['Necromancer'], bodytype: 'undead' },
+  { id: 16, name: "Cajole Undead (undead)", maxLevel: 51, levelRequired: 49, classes: ['Necromancer'], bodytype: 'undead' },
+  { id: 17, name: "Beguile Undead (undead)", maxLevel: 46, levelRequired: 39, classes: ['Necromancer'], bodytype: 'undead' },
+  { id: 18, name: "Dire Charm (undead)", maxLevel: 46, levelRequired: 59, classes: ['Necromancer'], bodytype: 'undead' },
+  { id: 19, name: "Dominate Undead (undead)", maxLevel: 32, levelRequired: 18, classes: ['Necromancer'], bodytype: 'undead' },
   
   // Druid (Animal only)
-  { id: 20, name: "Command of Tunare (animal)", maxLevel: 60, classes: ['Druid'], bodytype: 'animal' },
-  { id: 21, name: "Call of Karana (animal)", maxLevel: 53, classes: ['Druid'], bodytype: 'animal' },
-  { id: 22, name: "Allure of the Wild (animal)", maxLevel: 49, classes: ['Druid'], bodytype: 'animal' },
-  { id: 23, name: "Dire Charm (animal)", maxLevel: 46, classes: ['Druid'], bodytype: 'animal' },
-  { id: 24, name: "Beguile Animals (animal)", maxLevel: 43, classes: ['Druid'], bodytype: 'animal' },
-  { id: 25, name: "Tunare's Request (animal)", maxLevel: 35, classes: ['Druid'], bodytype: 'animal' },
-  { id: 26, name: "Charm Animals (animal)", maxLevel: 33, classes: ['Druid'], bodytype: 'animal' },
-  { id: 27, name: "Befriend Animal (animal)", maxLevel: 24, classes: ['Druid'], bodytype: 'animal' }
+  { id: 20, name: "Command of Tunare (animal)", maxLevel: 60, levelRequired: 60, classes: ['Druid'], bodytype: 'animal' },
+  { id: 21, name: "Call of Karana (animal)", maxLevel: 53, levelRequired: 53, classes: ['Druid'], bodytype: 'animal' },
+  { id: 22, name: "Allure of the Wild (animal)", maxLevel: 49, levelRequired: 49, classes: ['Druid'], bodytype: 'animal' },
+  { id: 23, name: "Dire Charm (animal)", maxLevel: 46, levelRequired: 59, classes: ['Druid'], bodytype: 'animal' },
+  { id: 24, name: "Beguile Animals (animal)", maxLevel: 43, levelRequired: 39, classes: ['Druid'], bodytype: 'animal' },
+  { id: 25, name: "Tunare's Request (animal)", maxLevel: 35, levelRequired: 34, classes: ['Druid'], bodytype: 'animal' },
+  { id: 26, name: "Charm Animals (animal)", maxLevel: 33, levelRequired: 29, classes: ['Druid'], bodytype: 'animal' },
+  { id: 27, name: "Befriend Animal (animal)", maxLevel: 24, levelRequired: 14, classes: ['Druid'], bodytype: 'animal' }
 ];
 
 // API Routes
@@ -250,6 +250,60 @@ app.get('/api/npcs/:zone', (req, res) => {
   } catch (error) {
     console.error('Error fetching NPCs:', error);
     res.status(500).json({ error: 'Failed to fetch NPCs' });
+  }
+});
+
+// Get all killable targets for a zone (excluding GMs/raid targets > 150k HP, merchants, traps)
+app.get('/api/kill-targets/:zone', (req, res) => {
+  const { zone } = req.params;
+  
+  try {
+    const zoneNpcs = npcData.npcsByZone[zone] || [];
+    
+    if (zoneNpcs.length === 0) {
+      return res.json([]);
+    }
+    
+    // Filter NPCs
+    let filteredNpcs = zoneNpcs.filter(npc => {
+      // Basic filters
+      if (npc.hp <= 0 || npc.level <= 0) return false;
+      
+      // Exclude raid bosses/GMs by filtering out anything > 150k HP
+      if (npc.hp > 150000) return false;
+      
+      // Exclude merchants and bankers (classes 20, 21, 40, 41, 60, 61)
+      if ([20, 21, 40, 41, 60, 61].includes(npc.class)) return false;
+      
+      // Bodytype filters - always exclude Trap (66), Timer (67), Atenha Ra (11)
+      if ([11, 66, 67].includes(npc.bodytype)) return false;
+      
+      return true;
+    });
+    
+    // Enrich NPCs with basic data needed for the kill table
+    const enrichedNpcs = filteredNpcs.map(npc => {
+      return {
+        id: npc.id,
+        name: npc.name,
+        level: npc.level,
+        maxlevel: npc.maxlevel,
+        hp: npc.hp,
+        class: npc.class,
+        bodytype: npc.bodytype
+      };
+    });
+    
+    // Sort by level descending, then name
+    enrichedNpcs.sort((a, b) => {
+      if (b.level !== a.level) return b.level - a.level;
+      return a.name.localeCompare(b.name);
+    });
+    
+    res.json(enrichedNpcs);
+  } catch (error) {
+    console.error('Error fetching kill targets:', error);
+    res.status(500).json({ error: 'Failed to fetch kill targets' });
   }
 });
 

@@ -25,13 +25,33 @@
             </div>
 
             <div class="control-group">
+                <label for="player-class-select">Player Class:</label>
+                <select id="player-class-select">
+                    <option value="Enchanter" selected>Enchanter</option>
+                    <option value="Bard">Bard</option>
+                    <option value="Necromancer">Necromancer</option>
+                    <option value="Druid">Druid</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="player-level-select">Player Level:</label>
+                <select id="player-level-select">
+                    <!-- Options populated via JS -->
+                </select>
+            </div>
+
+            <div class="control-group">
                 <label for="charm-spell-select">Charm Spell:</label>
                 <select id="charm-spell-select">
                     <option value="">-- Select a Charm Spell --</option>
                 </select>
             </div>
 
-            <button id="search-btn" class="btn-primary" disabled>Search for Charm Pets</button>
+            <div class="control-actions">
+                <button id="search-btn" class="btn-primary" disabled>Search for Charm Pets</button>
+                <button id="xp-table-btn" class="btn-secondary" disabled>Show Zone XP & HP Table</button>
+            </div>
         </div>
 
         <div id="loading" class="loading" style="display: none;">
@@ -78,6 +98,47 @@
 
         <div id="error" class="error" style="display: none;">
             <p>Error loading data. Please check your database connection.</p>
+        </div>
+    </div>
+
+    <!-- XP & HP Table Modal -->
+    <div id="xp-modal" class="modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚔️ Zone Kill Targets - XP & HP Table</h2>
+                <span id="close-modal-btn" class="close-btn">&times;</span>
+            </div>
+            <div class="modal-info">
+                <div id="modal-zone-info" class="modal-subtitle">Zone: None | ZEM: 1.00</div>
+                <div id="zem-warning-alert" class="alert alert-warning" style="display: none;">
+                    ⚠️ Warning: Zone Experience Modifier (ZEM) not found. Defaulting to 1.00.
+                </div>
+            </div>
+            <div class="modal-search-container">
+                <input type="text" id="modal-search" placeholder="Search mobs by name...">
+                <span id="modal-npc-count" class="modal-count">0 mobs found</span>
+            </div>
+            <div class="modal-table-container">
+                <table id="modal-npc-table">
+                    <thead>
+                        <tr>
+                            <th class="modal-sortable" data-sort="name">Name <span class="sort-arrow"></span></th>
+                            <th class="modal-sortable" data-sort="class">Class <span class="sort-arrow"></span></th>
+                            <th class="modal-sortable" data-sort="level">Level <span class="sort-arrow"></span></th>
+                            <th class="modal-sortable" data-sort="hp">HP <span class="sort-arrow"></span></th>
+                            <th class="modal-sortable" data-sort="xp">Experience <span class="sort-arrow"></span></th>
+                            <th class="modal-sortable" data-sort="xphp">Exp/HP <span class="sort-arrow"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-npc-tbody">
+                        <!-- Populated dynamically via JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button id="close-modal-bottom-btn" class="btn-secondary">Close</button>
+            </div>
         </div>
     </div>
 
