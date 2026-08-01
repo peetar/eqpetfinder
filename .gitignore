@@ -42,3 +42,6 @@ build/
 # Database import scripts (contain passwords)
 import-database.bat
 import-sql.ps1
+
+# Surge deployment folder
+surge_deploy/
