@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1C26">
+<title>Principles of Play — Roles, not positions</title>
+<style>
+:root{
+  --ink:#0E1C26; --board:#152C39;
+  --chalk:#EEF4F1; --dim:#8CA5B0;
+  --attack:#FFC61E; --defend:#5AB0E8;
+  --ok:#74D6A4; --miss:#F2795C; --talk:#B9A6FF;
+  --rule:rgba(238,244,241,.14);
+  --disp:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--chalk);font-family:var(--disp);
+  font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:3px solid var(--attack);outline-offset:3px;border-radius:4px}
+
+.app{display:flex;flex-direction:column;height:100dvh;max-width:1280px;margin:0 auto}
+
+/* ---------- header ---------- */
+.bar{display:flex;align-items:center;gap:14px;padding:9px 14px;border-bottom:1px solid var(--rule);flex:0 0 auto}
+.brand{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--dim);white-space:nowrap}
+.brand b{color:var(--chalk)}
+.rail{display:flex;gap:6px;align-items:center;margin-left:auto;margin-right:auto;flex-wrap:wrap;justify-content:center}
+.pip{width:15px;height:15px;border-radius:50%;border:2px solid var(--rule);padding:0;flex:0 0 auto}
+.pip[data-kind="talk"]{border-style:dashed;border-color:rgba(185,166,255,.5)}
+.pip[data-state="done"]{background:var(--rule);border-color:transparent}
+.pip[data-state="done"][data-kind="talk"]{background:rgba(185,166,255,.28);border-color:transparent}
+.pip[data-state="now"]{background:var(--chalk);border-color:var(--chalk);transform:scale(1.2)}
+.pip[data-state="now"][data-kind="talk"]{background:var(--talk);border-color:var(--talk)}
+.railgap{width:1px;height:15px;background:var(--rule);margin:0 4px;flex:0 0 auto}
+.tally{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
+.tally b{color:var(--ok);font-size:15px}
+.scensel{font-size:11px;font-weight:700;letter-spacing:.02em;border-radius:999px;
+  padding:7px 12px;background:transparent;color:var(--chalk);border:1px solid var(--rule);
+  max-width:238px;-webkit-appearance:none;appearance:none;cursor:pointer}
+.scensel:hover{background:rgba(255,255,255,.06)}
+.scensel option{background:#152C39;color:#EEF4F1}
+.modebtn{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  border-radius:999px;padding:7px 13px;white-space:nowrap;color:var(--ink);background:var(--chalk)}
+
+/* ---------- stage ---------- */
+.stage{flex:1 1 auto;display:flex;min-height:0}
+.fieldwrap{position:relative;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:8px 10px 6px}
+.field{position:relative;width:100%;aspect-ratio:1000/640;max-height:calc(100% - 58px);flex:0 1 auto}
+.field svg{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+
+.disc{cursor:pointer}
+.disc circle.halo{opacity:0;transition:opacity .16s}
+.disc:hover circle.halo{opacity:.4}
+.unit{transition:transform .8s cubic-bezier(.3,.7,.25,1)}
+.ball{transition:transform .85s cubic-bezier(.35,.05,.2,1)}
+@keyframes drop{from{opacity:0;transform:scale(.35)}to{opacity:1;transform:scale(1)}}
+.disc.enter{animation:drop .44s cubic-bezier(.2,.9,.3,1) backwards;
+  transform-box:fill-box;transform-origin:center}
+
+/* ---------- question panel, on the field ---------- */
+.panel{
+  position:absolute;top:2.2%;left:1.8%;
+  width:min(50%,410px);max-height:42%;
+  display:flex;flex-direction:column;
+  background:rgba(9,22,30,.9);border-left:3px solid var(--attack);
+  border-radius:3px 9px 9px 3px;padding:9px 12px 11px;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+.panel[data-kind="talk"]{border-left-style:dashed;border-left-color:var(--talk)}
+.panel[data-kind="info"]{border-left-color:var(--dim)}
+.panel.tall{max-height:64%}
+.pbody{overflow-y:auto;min-height:0}
+.pnav{flex:0 0 auto;display:flex;gap:7px;align-items:center;
+  margin-top:9px;padding-top:9px;border-top:1px solid var(--rule)}
+.pnav .btn{padding:8px 14px;font-size:clamp(11px,1.05vw,13.5px)}
+.pnav #nextBtn{margin-left:auto}
+
+.collapse{position:absolute;top:6px;right:7px;width:26px;height:26px;border-radius:7px;
+  color:var(--dim);font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
+.collapse:hover{background:rgba(255,255,255,.08);color:var(--chalk)}
+.pill{display:none}
+
+/* --- collapsed: one slim row, controls still with the question --- */
+.panel.min{flex-direction:row;align-items:center;gap:5px;
+  width:auto;max-width:min(66%,430px);max-height:none;padding:5px 5px 5px 9px;
+  border-radius:3px 999px 999px 3px}
+.panel.min .pbody{display:none}
+.panel.min .pnav{display:contents}
+.panel.min .pill{display:block;order:2;flex:1 1 auto;font-size:clamp(11px,1.15vw,14px);font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding:0 2px}
+.panel.min .collapse{position:static;order:5;flex:0 0 auto}
+.panel.min #backBtn{order:1}
+.panel.min #actBtn{order:3}
+.panel.min #nextBtn{order:4;margin-left:0}
+.panel.min .btn{padding:6px 11px;font-size:14px;line-height:1}
+
+.kicker{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin:0 0 4px;padding-right:26px}
+.kicker em{font-style:normal;color:var(--talk)}
+.q{margin:0;font-size:clamp(14px,1.85vw,21px);font-weight:800;letter-spacing:-.015em;line-height:1.2;padding-right:22px}
+.body{margin:7px 0 0;font-size:clamp(11px,1.05vw,14px);color:#C3D3DA;line-height:1.5}
+.body b{color:var(--chalk)}
+.resp{border-left:2px solid var(--rule);padding-left:9px;margin-top:9px}
+.pairs{margin:8px 0 0;font-family:var(--mono);font-size:clamp(10px,1vw,13px);line-height:1.85;color:#C3D3DA}
+.pairs i{font-style:normal;color:var(--attack)}
+.pairs u{text-decoration:none;color:var(--defend)}
+.choices{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.choice{border:1px dashed var(--talk);border-radius:8px;padding:8px 13px;
+  font-size:clamp(11px,1.05vw,14px);font-weight:700}
+.choice:hover{background:rgba(185,166,255,.12)}
+.choice[aria-pressed="true"]{background:rgba(185,166,255,.2);border-style:solid}
+.choice[data-tone="good"][aria-pressed="true"]{border-style:solid;border-color:var(--ok);background:rgba(116,214,164,.2)}
+.choice[data-tone="fair"][aria-pressed="true"]{border-style:solid;border-color:var(--attack);background:rgba(255,198,30,.16)}
+.choice[data-tone="poor"][aria-pressed="true"]{border-style:solid;border-color:var(--miss);background:rgba(242,121,92,.18)}
+.resp[data-tone="good"]{border-left-color:var(--ok)}
+.resp[data-tone="good"] b{color:var(--ok)}
+.resp[data-tone="fair"]{border-left-color:var(--attack)}
+.resp[data-tone="fair"] b{color:var(--attack)}
+.resp[data-tone="poor"]{border-left-color:var(--miss)}
+.resp[data-tone="poor"] b{color:var(--miss)}
+.qr{width:74px;height:74px;margin-top:10px;border:2px dashed var(--rule);border-radius:9px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:var(--mono);font-size:8.5px;line-height:1.3;color:var(--dim);padding:6px}
+
+/* ---------- callout anchored to a player ---------- */
+.pop{
+  position:absolute;left:0;top:0;z-index:5;
+  width:clamp(150px,30%,290px);max-height:36%;overflow-y:auto;
+  background:rgba(9,22,30,.97);border:1.5px solid var(--rule);border-radius:10px;
+  padding:9px 11px 10px;pointer-events:none;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+  opacity:0;transition:opacity .16s ease, scale .16s ease;scale:.92;
+}
+.pop.show{opacity:1;scale:1}
+.pop[hidden]{display:none}
+.pop h4{margin:0;padding-right:20px;font-size:clamp(11px,1.15vw,15px);font-weight:800;letter-spacing:-.01em;line-height:1.25}
+.pop p{margin:4px 0 0;font-size:clamp(10px,.95vw,13px);line-height:1.45;color:#C3D3DA}
+.pop[data-tone="ok"]{border-color:var(--ok)}
+.pop[data-tone="ok"] h4{color:var(--ok)}
+.pop[data-tone="miss"]{border-color:rgba(242,121,92,.75)}
+.pop[data-tone="miss"] h4{color:var(--miss)}
+.pop[data-tone="talk"]{border-color:rgba(185,166,255,.7)}
+.pop[data-tone="talk"] h4{color:var(--talk)}
+.popx{position:absolute;top:3px;right:4px;width:22px;height:22px;border-radius:6px;
+  pointer-events:auto;color:var(--dim);font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center}
+.popx:hover{background:rgba(255,255,255,.1);color:var(--chalk)}
+.pop .nib{position:absolute;width:10px;height:10px;background:inherit;
+  border:inherit;border-top:none;border-right:none}
+.pop[data-nib="l"] .nib{transform:rotate(45deg)}
+.pop[data-nib="r"] .nib{transform:rotate(225deg)}
+.pop[data-nib="t"] .nib{transform:rotate(135deg)}
+.pop[data-nib="b"] .nib{transform:rotate(-45deg)}
+.pop[data-nib="x"] .nib{display:none}
+
+.tip{position:absolute;z-index:8;width:min(320px,74%);background:rgba(9,22,30,.98);
+  border:1.5px solid var(--rule);border-radius:9px;padding:8px 11px 10px;pointer-events:none;
+  box-shadow:0 8px 26px rgba(0,0,0,.55);opacity:0;transition:opacity .13s}
+.tip.show{opacity:1}
+.tip[hidden]{display:none}
+.tip b{display:block;font-size:13px;font-weight:800;margin-bottom:3px;letter-spacing:-.01em}
+.tip span{display:block;font-size:12px;line-height:1.45;color:#C3D3DA}
+.tip[data-side="a"]{border-color:rgba(255,198,30,.6)}
+.tip[data-side="a"] b{color:var(--attack)}
+.tip[data-side="d"]{border-color:rgba(90,176,232,.6)}
+.tip[data-side="d"] b{color:var(--defend)}
+.li{cursor:help}
+
+/* ---------- the ten, always on screen ---------- */
+.legend{flex:0 0 auto;display:grid;grid-template-columns:auto repeat(5,1fr);
+  gap:2px 6px;align-items:center;padding:7px 2px 2px}
+.lcap{font-family:var(--mono);font-size:clamp(7.5px,.8vw,9.5px);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);padding-right:6px;white-space:nowrap}
+.li{font-size:clamp(8.5px,1.02vw,12.5px);font-weight:700;letter-spacing:-.01em;
+  text-align:center;padding:3px 2px;border-radius:5px;border:1px solid transparent;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .25s}
+.li[data-side="a"]{color:rgba(255,198,30,.34)}
+.li[data-side="d"]{color:rgba(90,176,232,.34)}
+.li[data-state="done"][data-side="a"]{color:rgba(255,198,30,.8)}
+.li[data-state="done"][data-side="d"]{color:rgba(90,176,232,.8)}
+.li[data-state="live"][data-side="a"]{color:#0E1C26;background:var(--attack);border-color:var(--attack)}
+.li[data-state="live"][data-side="d"]{color:#0E1C26;background:var(--defend);border-color:var(--defend)}
+.li[data-state="off"]{opacity:.42;border-style:dashed;border-color:var(--rule)}
+
+@media (prefers-reduced-motion:reduce){
+  .unit,.ball,.pop{transition:none!important}
+  .disc.enter{animation:none!important}
+}
+
+/* ---------- notes ---------- */
+.notes{flex:0 0 296px;position:relative;border-left:1px solid var(--rule);background:var(--board);
+  padding:16px 16px 22px;overflow-y:auto;transition:flex-basis .2s}
+.notes[hidden]{display:none}
+.ntoggle{position:absolute;top:7px;right:9px;width:26px;height:26px;border-radius:7px;z-index:2;
+  color:var(--dim);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+.ntoggle:hover{background:rgba(255,255,255,.09);color:var(--chalk)}
+.nlabel{display:none}
+.notes.min{flex:0 0 38px;padding:42px 7px 12px;overflow:hidden}
+.notes.min .ninner{display:none}
+.notes.min .nlabel{display:block;writing-mode:vertical-rl;font-family:var(--mono);
+  font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.foryou{margin-bottom:20px}
+.fybody{font-size:14.5px;line-height:1.55;color:#C7D6DC}
+.fybody b{color:var(--chalk)}
+.foryou .qr{width:104px;height:104px;margin-top:12px;background:#fff;
+  border:none;border-radius:8px;padding:6px;display:block}
+.foryou .qr img{width:100%;height:100%;object-fit:contain;display:block;border-radius:2px}
+.notes h3{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:0 0 10px;font-weight:800}
+.clock{font-family:var(--mono);font-size:24px;margin:0 0 2px;padding-right:30px}
+.foryou h3{padding-right:30px}
+.clockcap{font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.11em;margin:0 0 18px;line-height:1.6}
+.notes ul{margin:0;padding:0;list-style:none}
+.notes li{font-size:13.5px;line-height:1.55;color:#C7D6DC;padding:0 0 2px 14px;border-left:2px solid var(--rule);margin-bottom:13px}
+.notes li:last-child{margin-bottom:0}
+.notes li b{color:var(--chalk);font-weight:700}
+.saybox{border:1px solid var(--rule);border-radius:10px;padding:12px 13px;margin-bottom:18px;background:rgba(255,255,255,.03)}
+.saybox p{margin:0;font-size:14.5px;line-height:1.5}
+.saybox span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+
+/* ---------- nav ---------- */
+.btn{border:1px solid var(--rule);border-radius:9px;padding:10px 17px;font-size:14px;font-weight:700;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.06)}
+.btn.go{background:var(--chalk);color:var(--ink);border-color:var(--chalk)}
+.btn.go:hover{background:#fff}
+.btn.ghost{color:var(--dim)}
+.btn[disabled]{opacity:.32;cursor:default}
+.btn[disabled]:hover{background:none}
+
+@media (max-width:560px){
+  .pop{position:static!important;width:auto;max-width:none;max-height:32vh;
+       margin:6px 0 0;scale:1!important;order:2}
+  .pop .nib{display:none!important}
+  .legend{order:3}
+}
+@media (max-width:900px){
+  .stage{flex-direction:column}
+  .notes{flex:0 0 auto;border-left:none;border-top:1px solid var(--rule);max-height:36vh}
+  .notes.min{flex:0 0 auto;padding:9px 12px;max-height:none}
+  .notes.min .nlabel{writing-mode:horizontal-tb;font-size:9.5px}
+  .fieldwrap{padding:5px}
+  .brand span{display:none}
+  .scensel{max-width:150px;padding:6px 9px}
+  .panel{width:min(60%,340px);max-height:46%;padding:7px 9px 9px}
+  .legend{gap:2px 4px;padding-top:5px}
+  .panel.min{max-width:78%}
+  .pop{width:min(38%,230px)}
+  .pnav{margin-top:7px;padding-top:7px}
+  .pnav .btn{padding:7px 11px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="bar">
+    <div class="brand"><b>Roles, not positions</b><span> · Principles of Play</span></div>
+    <nav class="rail" id="rail" aria-label="Steps"></nav>
+    <div class="tally" id="tally" title="Questions answered right first time"></div>
+    <select class="scensel" id="scenSel" aria-label="Choose what to run"></select>
+  </header>
+
+  <div class="stage">
+    <div class="fieldwrap" id="fieldwrap">
+      <div class="field" id="field">
+        <svg id="pitch" viewBox="0 0 1000 640" role="img"
+             aria-label="Soccer field diagram, attacking toward the goal on the right"></svg>
+        <section class="panel" id="panel">
+          <button class="collapse" id="collapseBtn" aria-expanded="true"
+                  aria-label="Hide the instructions" title="Hide the instructions">▴</button>
+          <span class="pill" id="pill"></span>
+          <div class="pbody" id="pbody" aria-live="polite">
+            <p class="kicker" id="kicker"></p>
+            <h1 class="q" id="q"></h1>
+            <p class="body" id="body"></p>
+            <div class="pairs" id="pairs" hidden></div>
+            <div class="choices" id="choices"></div>
+            <p class="body resp" id="resp" hidden></p>
+          </div>
+          <div class="pnav" id="pnav">
+            <button class="btn ghost" id="backBtn">Back</button>
+            <button class="btn go" id="actBtn" hidden></button>
+            <button class="btn go" id="nextBtn">Next</button>
+          </div>
+        </section>
+      </div>
+      <div class="pop" id="pop" role="status" hidden>
+        <span class="nib"></span>
+        <button class="popx" id="popX" aria-label="Close this note">×</button>
+        <h4 id="popH"></h4>
+        <p id="popB"></p>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="tip" id="tip" hidden><b id="tipH"></b><span id="tipB"></span></div>
+    </div>
+
+    <aside class="notes" id="notes" aria-label="Coach notes">
+      <button class="ntoggle" id="notesToggle" aria-expanded="true"
+              aria-label="Hide coach notes" title="Hide coach notes">›</button>
+      <span class="nlabel">Coach notes</span>
+      <div class="ninner" id="ninner">
+      <div class="foryou" id="foryou" hidden>
+        <h3>For you</h3>
+        <div class="fybody" id="fybody"></div>
+        <div class="qr" id="qrN" hidden><img src="data:image/png;base64,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" alt="QR code to the practice version of this tool"></div>
+      </div>
+      <p class="clock" id="clock">0:30</p>
+      <p class="clockcap" id="clockcap"></p>
+      <div class="saybox"><span>Say this</span><p id="say"></p></div>
+      <h3>Why it's here</h3>
+      <ul id="why"></ul>
+      </div>
+    </aside>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   THE CAST — attacking left to right, goal on the right
+   ============================================================ */
+var SESS_P = {
+  A1:{t:"a", x:400, y:470, n:"7"},
+  A2:{t:"a", x:660, y:250, n:"9"},
+  A3:{t:"a", x:330, y:330, n:"8"},
+  A4:{t:"a", x:600, y:95,  n:"11"},
+  D1:{t:"d", x:505, y:462, n:"3"},
+  D2:{t:"d", x:735, y:315, n:"5"},
+  D3:{t:"d", x:745, y:185, n:"2"}
+};
+var SESS_SPOT = {
+  A3_shadow:{x:600, y:456},
+  A3_angle :{x:330, y:330},
+  A4_narrow:{x:640, y:200},
+  A4_wide  :{x:600, y:95},
+  A4_run   :{x:780, y:150},   // timed level with the last defender, not beyond it
+  D1_flat  :{x:700, y:404},
+  D1_cover :{x:800, y:372},
+  D1_tight :{x:775, y:340},
+  D2_press :{x:735, y:275},
+  D2_tight :{x:735, y:300},
+  D3_track :{x:860, y:205},
+  D3_tight :{x:820, y:225},
+  A1_past  :{x:600, y:455},
+  D1_delay :{x:560, y:440},
+  D1_man   :{x:480, y:440},
+  D3_man   :{x:848, y:118},
+  D1_squeeze:{x:760, y:340},
+  D3_squeeze:{x:810, y:210}
+};
+
+var SESS_STEPS = [
+
+/* 0 */ {
+  track:"FS", kind:"info", time:30, label:"Frame it",
+  cast:[], ball:null,
+  q:"Set up the moment.",
+  action:{ t:"Add the players", cast:["A1","A2","D1","D2"], ball:"A1",
+           q:"Two attackers. Two defenders." },
+  say:"I'm going to run this exactly the way you'd run it at practice on Tuesday. Answer fast, answer out loud, don't give me the full tactical breakdown.",
+  why:["Set the pace here: fast answers, out loud. Careful, hedged answers at this step cost you a minute you need later.",
+       "Say the interface is one tap. Otherwise half the room studies the buttons instead of the soccer."],
+  next:"Begin"
+},
+
+/* 1 */ {
+  track:"FS", kind:"tap", time:30, label:"First attacker", hi:["penetration"],
+  cast:["A1","A2","D1","D2"], ball:"A1",
+  q:"Tap the first attacker.",
+  ask:{ answer:"A1", tag:{A1:"1st ATT"},
+    ok:"First attacker | The player with the ball. His job is penetration — get it forward, toward goal.",
+    miss:{ A2:"Second attacker | He's supporting. The first attacker is always the one with the ball.",
+           D1:"Wrong team | That's a defender. Start from the ball.",
+           D2:"Wrong team | That's a defender. Start from the ball." } },
+  say:"Hand the tablet to someone in the front row. Let them tap it.",
+  why:["Deliberately too easy. Its only job is to attach the word to a picture and start the loop. Don't apologize for it.",
+       "<b>Pass the tablet, don't hold it.</b> Watching it move around the room is how coaches learn the ergonomics — one screen, many heads, everyone leaning in."],
+  next:"Next"
+},
+
+/* 2 */ {
+  track:"FS", kind:"tap", time:30, label:"First defender", hi:["penetration","delay"],
+  cast:["A1","A2","D1","D2"], ball:"A1", tags:{A1:"1st ATT"},
+  q:"Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | Closest to the ball, applying pressure. His job is delay.",
+    miss:{ D2:"Second defender | He's covering behind. The first defender is the one pressuring the ball.",
+           A1:"Wrong team | He's the one you just identified.",
+           A2:"Wrong team | That's an attacker." } },
+  say:"Different coach this time. Pass it along.",
+  why:["Two defenders on the field, not one — so this is a real choice, not a formality.",
+       "If someone taps the deeper defender, that's the useful wrong answer. Let the player explain it, then move."],
+  next:"Next"
+},
+
+/* 3 */ {
+  track:"FS", kind:"talk", time:60, label:"Win it or delay?", hi:["penetration","delay"],
+  cast:["A1","A2","D1","D2"], ball:"A1", tags:{A1:"1st ATT", D1:"1st DEF"},
+  q:"The first defender: win it, or hold his ground?",
+  choices:[
+    {t:"Go and win it", tone:"poor", at:{A1:"A1_past"}, mark:{poor:["D1"]},
+     r:"Beaten | Sometimes he wins it. The rest of the time he's turned, and now there is nobody between the ball and goal."},
+    {t:"Delay", tone:"good", at:{D1:"D1_delay"}, mark:{good:["D1"]},
+     r:"Almost always this | Stay on your feet, angle him away from goal, slow it down until help arrives."}
+  ],
+  say:"This one the app won't score — because it depends. That's the first thing to notice about the tool.",
+  why:["Let two or three answer before you land it.",
+       "Then name the design: <b>scored questions have one right answer, unscored ones don't.</b> Identification is a fact. Judgment isn't. That distinction is the whole reason this doesn't teach kids that soccer has one correct answer per situation.",
+       "New coaches shout GET IT. That's the habit you're here to interrupt."],
+  next:"Next"
+},
+
+/* 4 */ {
+  track:"FS", kind:"talk", time:75, label:"Support", hi:["penetration","support"],
+  cast:["A1","A2","D1","D2"], ball:"A1", tags:{A1:"1st ATT", D1:"1st DEF"},
+  zones:["A3_shadow","A3_angle"], zoneOwner:"A3",
+  q:"Where should the support go?",
+  a:"Tap a zone \u2014 you can try both.",
+  zoneResult:{
+    A3_shadow:"No lane | He's close and he's available, and the first defender is standing on the passing line. Support isn't a distance.",
+    A3_angle :"Second attacker · support | Clear lane, and he's behind the ball so he can see the whole picture. Support is an angle."
+  },
+  zoneTag:{ A3_angle:{A3:"2nd ATT"} },
+  zoneTone:{ A3_shadow:"poor", A3_angle:"good" },
+  say:"Take two or three suggestions out loud before anyone taps.",
+  why:["Steer them to the blocked one first if you can — the wrong version teaches harder than the right one.",
+       "Both zones are shaded, not dotted, on purpose. Support is an area with soft edges, not a spot. If you scored this you'd be teaching the opposite of the lesson."],
+  next:"Next"
+},
+
+/* 5 */ {
+  track:"FS", kind:"tap", time:90, label:"The pass", hi:["penetration","support","delay"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1", at:{A3:"A3_angle"},
+  tags:{A1:"1st ATT", D1:"1st DEF", A3:"2nd ATT", D2:"2nd DEF"},
+  q:"Only the ball moves.",
+  action:{ t:"Play the pass", ball:"A2", at:{D2:"D2_press"}, tags:{A3:"2nd ATT", A1:"2nd ATT"} },
+  asks:[
+    { q:"Who's the first attacker now?", answer:"A2", tag:{A2:"1st ATT"},
+      ok:"First attacker | And the player who just passed it is now a second attacker.",
+      miss:{ A1:"Not any more | He had it a second ago. Now he's supporting.",
+             A3:"Supporting | The first attacker is whoever has the ball right now.",
+             D1:"Wrong team | Look at the yellow shirts.",
+             D2:"Wrong team | Look at the yellow shirts." } },
+    { q:"Who's the first defender now?", answer:"D2", tag:{D2:"1st DEF"},
+      ok:"First defender | He was the second defender four seconds ago. Nobody moved. Only the ball.",
+      miss:{ D1:"He was | The ball is past him. He's recovering now, not pressuring.",
+             A1:"Wrong team | Look at the blue shirts.",
+             A2:"Wrong team | Look at the blue shirts.",
+             A3:"Wrong team | Look at the blue shirts." } }
+  ],
+  say:"Roles are not positions. They get reassigned on every single touch. A center back can be the first attacker. A striker can be the first defender.",
+  why:["<b>The most important ninety seconds in the session.</b> If you're running short, everything else goes before this does.",
+       "New coaches think in positions — this kid is the right back, that kid is the striker. First attacker and first defender describe a relationship to the ball at one moment.",
+       "This is also the loop the kids will play forty times in six minutes without being told to."],
+  next:"Next"
+},
+
+/* 6 */ {
+  track:"FS", kind:"talk", time:60, label:"Cover", hi:["delay","cover"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A2", at:{A3:"A3_angle", D2:"D2_press"},
+  tags:{A2:"1st ATT", D2:"1st DEF"},
+  zones:["D1_flat","D1_cover"], zoneOwner:"D1",
+  q:"Where does the beaten defender recover to?",
+  a:"Tap a zone \u2014 you can try both.",
+  zoneResult:{
+    D1_flat :"Flat | Level with his teammate. One pass between them beats both defenders at once. This is the most common thing you'll see on Saturday.",
+    D1_cover:"Second defender · cover | Behind and inside. If the first defender gets beaten, someone is still there."
+  },
+  zoneTag:{ D1_cover:{D1:"2nd DEF"} },
+  zoneTone:{ D1_flat:"poor", D1_cover:"good" },
+  say:"Ask where before anyone taps. Someone will say flat — that's the answer you want in the room.",
+  why:["Flat is the useful wrong answer, so don't rush past it.",
+       "If you're at eight minutes and something has to go, cut <b>this</b> step, not the facilitation debrief at the end."],
+  next:"Next"
+},
+
+/* 7 */ {
+  track:"FS", kind:"info", time:30, label:"Two pairs", hi:["penetration","support","delay","cover"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A2",
+  at:{A3:"A3_angle", D2:"D2_press", D1:"D1_cover"},
+  tags:{A2:"PENETRATE", A3:"SUPPORT", A1:"SUPPORT", D2:"DELAY", D1:"COVER"},
+  q:"Two pairs so far.",
+  a:"Penetration is answered by delay. Support is answered by cover.",
+  say:"Fast. This is a summary, not new content.",
+  why:["<b>The natural stopping point.</b> The short session ends the soccer here and goes straight to the debrief — two pairs they can see beats five pairs they can't.",
+       "The full session carries on from here to the other three pairs: width and compactness, mobility and balance, creativity and control."],
+  next:"Next"
+},
+
+/* 8 */ {
+  track:"F", kind:"talk", time:75, label:"Width", hi:["width"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A2",
+  at:{A3:"A3_angle", D2:"D2_press", D1:"D1_cover"},
+  tags:{A2:"1st ATT", D2:"1st DEF", D1:"2nd DEF"},
+  zones:["A4_narrow","A4_wide"], zoneOwner:"A4",
+  q:"A third attacker, far side. Where?",
+  a:"There's a third defender over there now. Tap a zone — you can try both.",
+  zoneResult:{
+    A4_narrow:"Same space | Two attackers in one defender's worth of ground. The defense doesn't have to move a step to cover both.",
+    A4_wide  :"Width | Three defenders now have to cover the whole width of the field, and every gap between them gets wider."
+  },
+  zoneTag:{ A4_wide:{A4:"WIDTH"} },
+  zoneTone:{ A4_narrow:"poor", A4_wide:"good" },
+  say:"Width is the principle nobody believes until they see the gaps open up.",
+  why:["The near-side wide player is the one most coaches remember to use. The <b>far-side</b> one goes unused for entire seasons.",
+       "Worth saying plainly: a wide player who never gets the ball is still doing his job, because he's holding a defender out there. Kids hate this. Tell them anyway."],
+  next:"Next"
+},
+
+/* 9 */ {
+  track:"F", kind:"tap", time:90, label:"Mobility / balance", hi:["mobility","balance"],
+  cast:["A1","A2","A3","A4","D1","D2","D3"], ball:"A2",
+  at:{A3:"A3_angle", A4:"A4_wide", D2:"D2_press", D1:"D1_cover"},
+  tags:{A2:"1st ATT", D2:"1st DEF", A4:"3rd ATT"},
+  q:"The wide attacker hasn't touched the ball. Now he runs.",
+  action:{ t:"Play the run", q:"Who's responsible for that run?",
+           at:{A4:"A4_run", D3:"D3_track"},
+           tags:{A2:"1st ATT", D2:"1st DEF", A4:"MOBILITY"} },
+  ask:{ answer:"D3", tag:{D3:"BALANCE"},
+    ok:"Third defender · balance | Not the ball, not the man pressing it — the space away from the ball. Ball-watch here and that run scores.",
+    miss:{ D2:"Occupied | He's pressuring the ball. Somebody else has to see the run.",
+           D1:"Covering | He's behind the first defender. Look further from the ball.",
+           A1:"Wrong team | Look at the blue shirts.",
+           A2:"Wrong team | Look at the blue shirts.",
+           A3:"Wrong team | Look at the blue shirts.",
+           A4:"That's the runner | Who's responsible for him?" } },
+  say:"Mobility on one side, balance on the other. Neither player is anywhere near the ball.",
+  why:["<b>This is the pair that separates a coach who watches the ball from one who watches the game.</b> Both roles are defined entirely by what's happening away from it.",
+       "Practical translation for Saturday: your furthest defender from the ball should be talking loudest, because he's the only one who can see the whole picture.",
+       "The run ends <b>level with the last defender</b> on purpose. Show a runner beyond the back line and the first thing a sharp player says is “offside” — and you have lost the room."],
+  next:"Next"
+},
+
+/* 10 */ {
+  track:"F", kind:"talk", time:60, label:"Compactness", hi:["width","compactness"],
+  cast:["A1","A2","A3","A4","D1","D2","D3"], ball:"A2",
+  at:{A3:"A3_angle", A4:"A4_run", D2:"D2_press", D1:"D1_cover", D3:"D3_track"},
+  tags:{A2:"1st ATT", D2:"1st DEF"},
+  q:"Three attackers, spread wide. What does the defence do?",
+  choices:[
+    {t:"Each takes a man", tone:"poor", at:{D1:"D1_man", D3:"D3_man"}, mark:{poor:["D1","D3"]},
+     r:"Now the field is as big as they want it | Three defenders stretched across sixty yards, and every gap between them is where the game gets played."},
+    {t:"Squeeze together", tone:"good", at:{D1:"D1_squeeze", D3:"D3_squeeze"}, mark:{good:["D1","D3"]},
+     r:"Compactness | Make them go around you rather than through you. The cost is real — you concede the far-side player, and that trade is the decision."}
+  ],
+  say:"Compactness is the answer to width, and it's an unpleasant answer — you're choosing what to give up.",
+  why:["Every defending principle is a trade, and this is the clearest one. Coaches who never name the trade end up chasing everything and covering nothing.",
+       "<b>Someone will ask why the defender doesn\u2019t just go out wide.</b> He does \u2014 the nearest defender always presses the ball, wherever it is. The real question is what the other two do: tuck in, or follow him across. You can only afford to send a defender wide if the middle is still covered without him.",
+       "The practical version is one sentence: <b>the two lines stay close together, and the ball-far defender tucks in.</b> That's it."],
+  next:"Next"
+},
+
+/* 11 */ {
+  track:"F", kind:"talk", time:75, label:"Creativity / control", hi:["creativity","control"],
+  cast:["A1","A2","A3","A4","D1","D2","D3"], ball:"A2",
+  at:{A3:"A3_angle", A4:"A4_run", D2:"D2_press", D1:"D1_tight", D3:"D3_tight"},
+  tags:{A2:"1st ATT", A4:"3rd ATT", D2:"1st DEF"},
+  q:"What does the first attacker do?",
+  a:"The defence has squeezed and won't gamble \u2014 that's control. The runner is ready to go.",
+  choices:[
+    {t:"Ball over the top", tone:"fair", ball:"A4",
+     r:"Creativity | Low percentage, high reward, and the only principle a coach can't install — you can only permit it. Kids who get shouted at for losing the ball stop attempting anything."},
+    {t:"Pass back", tone:"good", ball:"A3", mark:{good:["A3"]},
+     r:"The one that actually happens | Not a retreat — he's using the angle his second attacker gave him. The ball goes back, the defence has to shift, and somebody else is now the first attacker."},
+    {t:"Keep it and wait", tone:"poor", mark:{poor:["A2"]},
+     r:"The weakest of the three | Hold the ball in front of a compact block and you invite the second defender to step out and double him."}
+  ],
+  say:"And the mirror: control and restraint. The attacking team's job is to surprise you. The defending team's job is to be boring.",
+  why:["<b>Creativity ↔ control is the pair most likely to get skipped, and the one that most changes how a coach behaves on the sideline.</b>",
+       "Say the practical form out loud: attackers are allowed to gamble in the attacking third. Defenders are never allowed to gamble in their own. Same team, two different permissions.",
+       "Three options, three different truths: one is creative, one is realistic, one is passive. <b>Most rooms pick the pass back, and they are right.</b> Agree with them, then ask what the defence has to do about it — that is the whole game in one exchange.",
+       "This is also where you say the thing about the tool itself — it can teach nine of these. It cannot teach this one."],
+  next:"Next"
+},
+
+/* 12 */ {
+  track:"F", kind:"info", time:45, label:"All ten", hi:["penetration","support","mobility","width","creativity","delay","cover","balance","compactness","control"],
+  cast:["A1","A2","A3","A4","D1","D2","D3"], ball:"A2",
+  at:{A3:"A3_angle", A4:"A4_run", D2:"D2_press", D1:"D1_cover", D3:"D3_track"},
+  tags:{A2:"1st ATT", A3:"2nd ATT", A4:"3rd ATT", D2:"1st DEF", D1:"2nd DEF", D3:"3rd DEF"},
+  q:"Five pairs.",
+  pairs:[["Penetration","Delay"],["Support","Cover"],["Mobility","Balance"],["Width","Compactness"],["Creativity","Control"]],
+  a:"Every attacking principle has a defending one built to cancel it.",
+  say:"You didn't memorise ten things. You watched them happen.",
+  why:["Resist adding an eleventh idea here. The closing move is the pairing, not more vocabulary.",
+       "If a coach asks which principle matters most: the one nearest the ball, always. That's why the session started there."],
+  next:"Next"
+},
+
+/* 13 */ {
+  track:"FS", kind:"info", time:90, label:"How to run it", coachOnly:true,
+  cast:["A1","A2","A3","D1","D2"], ball:"A2",
+  at:{A3:"A3_angle", D2:"D2_press", D1:"D1_cover"},
+  q:"Notice how I ran that.",
+  a:"<b>One:</b> the device moved around the room — I never held it. <b>Two:</b> nobody was wrong by name. One team score, not eleven. <b>Three:</b> I moved fast on the identification questions and stopped for the placement ones.",
+  say:"Three things I did that you should copy.",
+  why:["<b>Most likely step to get cut for time, and the one that decides whether coaches run this well or badly.</b>",
+       "A coach who understands the facilitation can find the rest of the content on their own with the tool in hand. A coach who doesn't will turn it into a quiz.",
+       "If a coach challenges a scored answer on a technicality: the disagreement is the point, and it's exactly why the placement questions aren't scored. Then move — that conversation eats three minutes if you let it."],
+  next:"Next"
+},
+
+/* 14 */ {
+  track:"FS", kind:"info", time:45, label:"Hand it over", coachOnly:true,
+  cast:["A1","A2","A3","D1","D2"], ball:"A2",
+  at:{A3:"A3_angle", D2:"D2_press", D1:"D1_cover"},
+  q:"This is yours.",
+  a:"Six minutes before practice, kids around one screen, taking turns tapping. Close the coach notes and these steps drop out, leaving only the soccer. Scan to open it on your own device.",
+  qr:true,
+  say:"And here's the line that gets it onto the field: next rondo, whoever's the first defender shouts it.",
+  why:["The transfer prompt matters more than the tool. Say it slowly enough that they write it down.",
+       "Tell them plainly: <b>this teaches recognition and vocabulary, not execution.</b> A kid who can find the second defender on a screen still has to learn to get there under pressure. Some coaches will treat this as a substitute for a training session if you don't close that door."],
+  next:"Start over"
+}
+];
+
+
+/* ============================================================
+   SCENARIO LIBRARY
+   Each entry brings its own cast, its own spots and its own steps.
+   field: "third" = attacking third, one goal.  "full" = whole pitch.
+   ============================================================ */
+
+/* ---------- 1. THE WIDE BALL ---------- */
+var WIDE_P = {
+  A1:{t:"a", x:520, y:540, n:"7"},
+  A2:{t:"a", x:700, y:330, n:"9"},
+  A3:{t:"a", x:620, y:140, n:"11"},
+  D1:{t:"d", x:615, y:495, n:"3"},
+  D2:{t:"d", x:770, y:355, n:"5"},
+  D3:{t:"d", x:745, y:205, n:"2"}
+};
+var WIDE_SPOT = {
+  D2_follow:{x:720, y:450}, D3_follow:{x:640, y:400},
+  D2_tuck  :{x:775, y:375}, D3_tuck  :{x:800, y:270}
+};
+var WIDE_STEPS = [
+{
+  kind:"tap", time:45, label:"Nearest the ball", hi:["delay"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  q:"The ball is out wide. Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | Nearest the ball. That never changes, wherever the ball is.",
+    miss:{ D2:"Not him | Someone is closer to the ball than he is.",
+           D3:"Not him | Look for whoever is nearest the ball." } },
+  say:"The nearest defender always presses. That part isn't a choice.",
+  why:["Start here so nobody argues about whether a defender should go wide. He does. The argument is about the other two.",
+       "This is the scenario a player asked for, and it teaches compactness better than a central picture does."],
+  next:"Next"
+},
+{
+  kind:"talk", time:75, label:"Follow or tuck?", hi:["compactness"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{D1:"1st DEF"},
+  q:"What do the other two defenders do?",
+  choices:[
+    {t:"Follow him across", tone:"poor",
+     at:{D2:"D2_follow", D3:"D3_follow"}, mark:{poor:["D2","D3"]},
+     r:"Now look at the middle | Three defenders on one touchline. One pass inside and there is nobody home. This is the most common mistake you will see on a Saturday."},
+    {t:"Tuck in behind him", tone:"good",
+     at:{D2:"D2_tuck", D3:"D3_tuck"}, mark:{good:["D2","D3"]},
+     r:"Compactness | Shift, don't chase. The wide player can go forward or backward and that is about it \u2014 the touchline is defending one whole side for you."}
+  ],
+  say:"Shift, don't chase. Say it exactly like that and they'll remember it.",
+  why:["<b>The trap is that following looks like effort.</b> Chasing the ball feels like defending, and it opens the only part of the field that actually matters.",
+       "You can only afford to send one defender wide if the middle is still covered without him. That is the whole trade in one sentence."],
+  next:"Next"
+},
+{
+  kind:"tap", time:60, label:"Ball comes inside", hi:["delay","compactness"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  at:{D2:"D2_tuck", D3:"D3_tuck"}, tags:{D1:"1st DEF"},
+  q:"The attack gives up on the wing.",
+  action:{ t:"Play it inside", ball:"A2", q:"Who's the first defender now?",
+           tags:{} },
+  ask:{ answer:"D2", tag:{D2:"1st DEF"},
+    ok:"First defender | He was tucked in, so he was already there. That is what compactness buys you \u2014 the next presser is in position before the ball arrives.",
+    miss:{ D1:"He was | The ball has gone past him. He's recovering now.",
+           D3:"Not him | Someone is closer to the ball." } },
+  say:"Watch what compact buys you: the next defender is already there.",
+  why:["This is the payoff for the previous step. Run it back with the other choice if the room needs convincing \u2014 with three defenders on the touchline, this pass has nobody near it."],
+  next:"Next"
+},
+{
+  kind:"info", time:45, label:"Wide is a win", hi:["compactness"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A2",
+  at:{D2:"D2_tuck", D3:"D3_tuck"}, tags:{D2:"1st DEF"},
+  q:"Good defences force the ball wide on purpose.",
+  a:"Out there, there is less dangerous space, nobody behind him, and the touchline does half your work. Wide isn't a crisis \u2014 it's a small win, as long as nobody chases.",
+  say:"Ask them where they'd rather the other team had the ball: the wing, or the middle.",
+  why:["Most young defenders treat a wide attacker as an emergency. Reframing it as a small win is the single most useful thing in this scenario.",
+       "It also explains why coaches shout \u201cshow him outside\u201d \u2014 you are herding the ball to the safest place on the field."],
+  next:"Start over"
+}
+];
+
+/* ---------- 2. THE TURNOVER ---------- */
+var TURN_P = {
+  A1:{t:"a", x:440, y:330, n:"8"},
+  A2:{t:"a", x:660, y:250, n:"9"},
+  A3:{t:"a", x:300, y:400, n:"6"},
+  D1:{t:"d", x:530, y:315, n:"6"},
+  D2:{t:"d", x:700, y:420, n:"5"},
+  D3:{t:"d", x:740, y:215, n:"2"}
+};
+var TURN_SPOT = {};
+var TURN_STEPS = [
+{
+  kind:"tap", time:40, label:"Who's who", hi:["penetration"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  q:"Yellow has the ball. Tap the first attacker.",
+  ask:{ answer:"A1", tag:{A1:"1st ATT"},
+    ok:"First attacker | The one with the ball, as always.",
+    miss:{ A2:"Not him | He hasn't got the ball.",
+           A3:"Not him | He hasn't got the ball." } },
+  say:"Quick. This is just to set the board.",
+  why:["Fast setup. The whole scenario is one moment, and it hasn't happened yet."],
+  next:"Next"
+},
+{
+  kind:"tap", time:40, label:"And the defender", hi:["penetration","delay"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{A1:"1st ATT"},
+  q:"Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | Nearest the ball, pressing.",
+    miss:{ D2:"Not him | Someone is closer.", D3:"Not him | Someone is closer." } },
+  say:"Still setting the board. Move.",
+  why:["Two taps, twenty seconds. Everything in this scenario is about what happens next."],
+  next:"Next"
+},
+{
+  kind:"tap", time:105, label:"Lose it", hi:["penetration","delay"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  tags:{A1:"1st ATT", D1:"1st DEF"},
+  q:"Now the attacker loses the ball.",
+  action:{ t:"Lose the ball", ball:"D1", tags:{},
+           q:"Who's the first attacker now?" },
+  asks:[
+    { q:"Who's the first attacker now?", answer:"D1", tag:{D1:"1st ATT"},
+      ok:"First attacker | The same player. He never moved. The ball changed teams, so his job did.",
+      miss:{ D2:"Not him | Who has the ball right now?",
+             D3:"Not him | Who has the ball right now?",
+             A1:"He was | Four seconds ago. Look at who has it now." } },
+    { q:"And who's the first defender?", answer:"A1", tag:{A1:"1st DEF"},
+      ok:"First defender | The player who just lost it. He's nearest the ball, so he's the one who has to press.",
+      miss:{ A2:"Not him | The nearest yellow shirt to the ball.",
+             A3:"Not him | The nearest yellow shirt to the ball.",
+             D1:"He has it | He can't defend it." } }
+  ],
+  say:"Nobody moved. Every single player on this field just changed job.",
+  why:["<b>This is the whole idea of the game in four seconds.</b> Shirt colour didn't change. Position didn't change. Role changed for all six.",
+       "The line that lands: your striker is now your first defender, and he is the only one who can do that job right now.",
+       "Teams practise attacking and they practise defending. Almost nobody practises the half-second in between, which is when most goals are conceded."],
+  next:"Next"
+},
+{
+  kind:"info", time:45, label:"The half-second", hi:["penetration","delay"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"D1",
+  tags:{D1:"1st ATT", A1:"1st DEF"},
+  q:"Six players. Six new jobs. One touch.",
+  a:"This is the fastest thing in soccer and the thing teams practise least. Whoever reacts first to a turnover usually decides what happens next.",
+  say:"Ask them how long they think it takes to react. Then tell them the good teams do it in about a second.",
+  why:["Transfer to the field: in any small-sided game, the rule is that the player who loses the ball is the first one to chase it. No exceptions, no sulking.",
+       "That single rule teaches this scenario better than any drill."],
+  next:"Start over"
+}
+];
+
+/* ---------- 3. COUNTER, 3 v 2 ---------- */
+var CTR_P = {
+  A1:{t:"a", x:420, y:320, n:"10"},
+  A2:{t:"a", x:470, y:490, n:"7"},
+  A3:{t:"a", x:455, y:155, n:"11"},
+  D1:{t:"d", x:560, y:330, n:"5"},
+  D2:{t:"d", x:700, y:300, n:"4"}
+};
+var CTR_SPOT = {
+  A1_gone :{x:630, y:335},
+  D1_drop :{x:625, y:345}
+};
+var CTR_STEPS = [
+{
+  kind:"tap", time:45, label:"Outnumbered", hi:["delay"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1",
+  q:"They've broken on you. Three against two. Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | Nearest the ball. Everything now depends on what he does next.",
+    miss:{ D2:"Not yet | He's the one further back. Look at who's nearest the ball." } },
+  say:"Count them out loud with the room. Three attackers, two defenders.",
+  why:["Being outnumbered is the situation where new coaches give the worst instruction, so it's worth its own scenario."],
+  next:"Next"
+},
+{
+  kind:"talk", time:75, label:"Win it or drop?", hi:["delay"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1", tags:{D1:"1st DEF"},
+  q:"Does the first defender go and win the ball?",
+  choices:[
+    {t:"Go and win it", tone:"poor",
+     at:{A1:"A1_gone"}, mark:{poor:["D1"]},
+     r:"Beaten | He commits, the ball goes past him, and now it's three against one with nobody between the ball and goal. He had one job and it wasn't this."},
+    {t:"Drop and delay", tone:"good",
+     at:{D1:"D1_drop"}, mark:{good:["D1"]},
+     r:"Delay | He can't win this on his own, so he doesn't try. Back off, stay on his feet, make them slow down. Every second he buys is another teammate getting back."}
+  ],
+  say:"When you're outnumbered, the first defender's job isn't to win it. It's to not lose it yet.",
+  why:["<b>Every instinct says go and win the ball.</b> On a counter that instinct loses games, and it's the single most valuable thing to correct.",
+       "The coaching phrase is \u201cdelay until the numbers even up.\u201d Say it, then ask what happens if he wins it. The answer is that sometimes he does \u2014 and the times he doesn't, you concede."],
+  next:"Next"
+},
+{
+  kind:"tap", time:60, label:"Behind him", hi:["delay","cover"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1",
+  at:{D1:"D1_drop"}, tags:{D1:"1st DEF"},
+  q:"Who's the second defender?",
+  ask:{ answer:"D2", tag:{D2:"2nd DEF"},
+    ok:"Second defender \u00b7 cover | Behind and inside. The moment the first defender is beaten, he is the last line \u2014 so he cannot be beaten by the same pass.",
+    miss:{ D1:"He's the first defender | The one pressing the ball. Who's behind him?" } },
+  say:"Two defenders, and they must never be beaten by the same pass.",
+  why:["The reason cover matters more when you're outnumbered: there is no third chance.",
+       "Watch for a coach saying both should press. Ask them what happens on the next pass."],
+  next:"Next"
+},
+{
+  kind:"info", time:40, label:"Delay is the game", hi:["delay","cover"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1",
+  at:{D1:"D1_drop"}, tags:{D1:"1st DEF", D2:"2nd DEF"},
+  q:"Outnumbered, delay is the whole game.",
+  a:"Slow it down, stay on your feet, force it to the least dangerous side, and wait for the numbers to even up. Nobody has to be a hero.",
+  say:"Ask what their instinct was. Most of them wanted to go and win it.",
+  why:["Transfer to the field: play 3v2 to a small goal, and the defenders score a point for every ten seconds they survive rather than for winning the ball. It changes their behaviour in one session."],
+  next:"Start over"
+}
+];
+
+/* ---------- 4. BUILDING OUT ---------- */
+var BUILD_P = {
+  A1:{t:"a", x:88,  y:320, n:"1"},
+  A2:{t:"a", x:215, y:250, n:"4"},
+  A3:{t:"a", x:390, y:335, n:"6"},
+  D1:{t:"d", x:265, y:340, n:"9"},
+  D2:{t:"d", x:340, y:490, n:"11"},
+  D3:{t:"d", x:455, y:245, n:"8"}
+};
+var BUILD_SPOT = {
+  A2_tight:{x:175, y:240},
+  A2_split:{x:185, y:485}
+};
+var BUILD_STEPS = [
+{
+  kind:"tap", time:50, label:"Even the keeper", hi:["penetration"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  q:"Your keeper has it and they're pressing. Tap the first attacker.",
+  ask:{ answer:"A1", tag:{A1:"1st ATT"},
+    ok:"First attacker | Yes \u2014 the keeper. Whoever has the ball is the first attacker, and that includes him.",
+    miss:{ A2:"Not him | Who has the ball?",
+           A3:"Not him | Who has the ball?" } },
+  say:"Let them hesitate on this one. The pause is the lesson.",
+  why:["<b>Half the room will not want to tap the keeper.</b> That hesitation is exactly the positional thinking this whole tool exists to break.",
+       "Once they accept the keeper as the first attacker, everything about playing out of the back gets easier to explain."],
+  next:"Next"
+},
+{
+  kind:"talk", time:75, label:"Split or tuck?", hi:["support","width"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{A1:"1st ATT"},
+  q:"Where does the centre back go?",
+  choices:[
+    {t:"Close to the keeper", tone:"poor",
+     at:{A2:"A2_tight"}, mark:{poor:["A2"]},
+     r:"One press kills both | From where that striker is standing he can cover the keeper and the centre back at the same time. Two players, one defender, no angle."},
+    {t:"Wide and low", tone:"good",
+     at:{A2:"A2_split"}, mark:{good:["A2"]},
+     r:"Width | Now one striker cannot press both. Whichever one he goes to, the other one is free. That's the whole trick of playing out."}
+  ],
+  say:"Width isn't only for the attacking third. It starts in your own box.",
+  why:["Most coaches teach width as a final-third idea. It matters more in your own third, because there the punishment for getting it wrong is immediate.",
+       "The measurable version: if one opponent can press two of your players, you're too close together."],
+  next:"Next"
+},
+{
+  kind:"tap", time:50, label:"Who presses", hi:["delay","width"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  at:{A2:"A2_split"}, tags:{A1:"1st ATT", A2:"WIDTH"},
+  q:"Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | Nearest the ball, and now he has a decision he didn't have before \u2014 which one of the two does he go to?",
+    miss:{ D2:"Not him | Someone is closer to the ball.",
+           D3:"Not him | He's marking the midfielder, further up." } },
+  say:"Notice his problem. He can only be in one place.",
+  why:["Naming the presser's dilemma out loud is what makes width feel useful rather than abstract."],
+  next:"Next"
+},
+{
+  kind:"talk", time:70, label:"Short or long?", hi:["support","penetration"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  at:{A2:"A2_split"}, tags:{A1:"1st ATT", A2:"WIDTH", D1:"1st DEF"},
+  q:"Short, or launch it?",
+  choices:[
+    {t:"Play it short", tone:"good",
+     mark:{good:["A2"]},
+     r:"Support | You built the angle. Use it. This is the option the last two steps created, and if you never take it the shape was pointless."},
+    {t:"Launch it long", tone:"fair",
+     r:"Not wrong, just not this | Sometimes long is the right call \u2014 bad pitch, high press, tired legs. But you'll give it straight back more often than not, and you skipped everything you just built."},
+    {t:"Keep it and wait", tone:"poor",
+     mark:{poor:["A1"]},
+     r:"The one that gets punished | A keeper holding the ball with a striker closing him down is how young teams concede the worst goals of the season."}
+  ],
+  say:"Long isn't banned. It's just not free.",
+  why:["<b>Don't let this become dogma.</b> Playing out is a tool, not a religion, and a coach who never allows long is as wrong as one who never allows short.",
+       "The honest framing: short when the angle exists, long when it doesn't, and never dawdle."],
+  next:"Start over"
+}
+];
+
+/* ---------- 5. OVERLOAD, 3 v 1 ---------- */
+var OVER_P = {
+  A1:{t:"a", x:600, y:320, n:"10"},
+  A2:{t:"a", x:640, y:470, n:"7"},
+  A3:{t:"a", x:635, y:180, n:"11"},
+  D1:{t:"d", x:760, y:320, n:"4"}
+};
+var OVER_SPOT = {
+  D1_commit:{x:665, y:330},
+  D1_show  :{x:735, y:380}
+};
+var OVER_STEPS = [
+{
+  kind:"tap", time:40, label:"One against three", hi:["delay"],
+  cast:["A1","A2","A3","D1"], ball:"A1",
+  q:"Three attackers, one defender. Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | And the only defender. He is also, technically, the second and third defender.",
+    miss:{} },
+  say:"There's only one, so this is quick. The next question is the real one.",
+  why:["A deliberately trivial tap to get the board set. The value in this scenario is all in the two discussions."],
+  next:"Next"
+},
+{
+  kind:"talk", time:70, label:"What can he do?", hi:["delay","control"],
+  cast:["A1","A2","A3","D1"], ball:"A1", tags:{D1:"1st DEF"},
+  q:"What can the lone defender actually do?",
+  choices:[
+    {t:"Go and win it", tone:"poor",
+     at:{D1:"D1_commit"}, mark:{poor:["D1"]},
+     r:"Gone | He commits, the ball goes round him, and now it is three against nobody. Against these numbers, going to ground is a gift."},
+    {t:"Delay and show one side", tone:"good",
+     at:{D1:"D1_show"}, mark:{good:["D1"]},
+     r:"Delay and control | He cannot stop all three. He can make them take the slowest option, push them away from the middle, and buy the seconds his teammates need."}
+  ],
+  say:"He can't win. He can make it take longer, and that's a real job.",
+  why:["This is <b>control and restraint</b> in its purest form. There is nothing to gamble on and everything to lose by gambling.",
+       "Worth telling defenders plainly: surviving is a result. Nobody claps for it, and it wins games."],
+  next:"Next"
+},
+{
+  kind:"talk", time:75, label:"Attacker's choice", hi:["penetration","support","creativity"],
+  cast:["A1","A2","A3","D1"], ball:"A1",
+  at:{D1:"D1_show"}, tags:{D1:"1st DEF", A1:"1st ATT"},
+  q:"And the first attacker's options?",
+  choices:[
+    {t:"Dribble at him", tone:"fair",
+     r:"Creativity | Nothing wrong with it. He has two teammates free and he's chosen the hardest option \u2014 which is sometimes exactly right, and which you must let him try."},
+    {t:"Slide it wide", tone:"good",
+     mark:{good:["A2","A3"]},
+     r:"Penetration through support | The defender has committed to one side. The free player on the other side is the fastest way to goal, and this is what having numbers is for."},
+    {t:"Shoot from here", tone:"poor",
+     r:"The wasteful one | It's the lowest-percentage option available and it throws away a three-against-one. Not a crime, just the least of the three."}
+  ],
+  say:"Three options, and this time one of them really is best. Say why.",
+  why:["<b>This is where creativity belongs</b>, and it's the thinnest principle everywhere else in this tool.",
+       "The balance to strike: dribbling isn't wrong, it's just not the best answer here. Kids who are told creativity is wrong stop trying anything, and kids who are never told about the free teammate never look up."],
+  next:"Next"
+},
+{
+  kind:"info", time:40, label:"Numbers", hi:["penetration","support"],
+  cast:["A1","A2","A3","D1"], ball:"A1",
+  at:{D1:"D1_show"}, tags:{A1:"1st ATT", D1:"1st DEF"},
+  q:"Numbers only help if you use them.",
+  a:"Three against one is only three against one if the other two are in positions the ball can reach. Otherwise it's one against one with an audience.",
+  say:"That last line is the one they'll repeat back to you.",
+  why:["Transfer to the field: any overload game where a goal only counts if two different players touched the ball in the move."],
+  next:"Start over"
+}
+];
+
+/* ---------- 6. THIRD-MAN RUN ---------- */
+var THIRD_P = {
+  A1:{t:"a", x:330, y:380, n:"6"},
+  A2:{t:"a", x:620, y:300, n:"9"},
+  A3:{t:"a", x:420, y:150, n:"11"},
+  D1:{t:"d", x:430, y:370, n:"4"},
+  D2:{t:"d", x:690, y:300, n:"5"},
+  D3:{t:"d", x:740, y:205, n:"2"}
+};
+var THIRD_SPOT = {
+  A3_hold:{x:420, y:150},
+  A3_run :{x:645, y:108}
+};
+var THIRD_STEPS = [
+{
+  kind:"tap", time:40, label:"Into the striker", hi:["penetration"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  q:"Tap the first attacker.",
+  ask:{ answer:"A1", tag:{A1:"1st ATT"},
+    ok:"First attacker | Deep midfielder with the ball and a striker to aim at.",
+    miss:{ A2:"Not yet | He hasn't got it.", A3:"Not him | Watch him though." } },
+  say:"Quick one. Watch the wide player while you do it.",
+  why:["Setting the board. The whole scenario is about the player nobody is looking at."],
+  next:"Next"
+},
+{
+  kind:"tap", time:70, label:"Back to goal", hi:["penetration","delay"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{A1:"1st ATT"},
+  q:"Play it in and watch what happens.",
+  action:{ t:"Pass into the striker", ball:"A2", tags:{},
+           q:"Who's the first defender now?" },
+  ask:{ answer:"D2", tag:{D2:"1st DEF"},
+    ok:"First defender | And the striker has his back to goal with a defender leaning on him. On his own, this pass has gone nowhere.",
+    miss:{ D1:"He was | The ball has gone past him.",
+           D3:"Not him | Someone is much closer to the ball." } },
+  say:"Notice the striker is stuck. That's the problem the next step solves.",
+  why:["Deliberately show the pass failing to achieve anything. A ball into a marked striker is not progress by itself.",
+       "This is the setup that makes the third-man idea land."],
+  next:"Next"
+},
+{
+  kind:"talk", time:80, label:"The third man", hi:["mobility"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A2",
+  tags:{A2:"1st ATT", D2:"1st DEF"},
+  q:"The wide attacker. Stand still, or go?",
+  choices:[
+    {t:"Hold his position", tone:"poor", at:{A3:"A3_hold"}, mark:{poor:["A3"]},
+     r:"Nothing has changed | The striker still has his back to goal with a defender on him, and now there's nowhere to go. Standing still is a decision, and it's usually the wrong one."},
+    {t:"Run in behind", tone:"good", at:{A3:"A3_run"}, mark:{good:["A3"]},
+     r:"Mobility | He wasn't part of that pass and nobody is marking him tightly, which is exactly why the run works. He didn't beat anybody \u2014 he just went."}
+  ],
+  say:"He had nothing to do with that pass. That's what makes him dangerous.",
+  why:["<b>This is the clearest picture of mobility anywhere in this tool.</b> He never touches the ball until the last moment and he does all the damage.",
+       "The reason it's hard to coach: the run has to start before the striker is ready, which feels wrong to a young player. Tell them the run is what makes the pass possible, not the other way round."],
+  next:"Next"
+},
+{
+  kind:"tap", time:70, label:"Round the corner", hi:["mobility","support","penetration"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A2",
+  at:{A3:"A3_run"}, tags:{A2:"1st ATT", D2:"1st DEF", A3:"MOBILITY"},
+  q:"Now the striker sets it round the corner.",
+  action:{ t:"Play the third-man pass", ball:"A3", tags:{A3:"1st ATT"},
+           q:"Who's the first defender now?" },
+  ask:{ answer:"D3", tag:{D3:"1st DEF"},
+    ok:"First defender | And he's arriving late, because until two seconds ago there was nothing to defend.",
+    miss:{ D2:"He was | The ball has gone past him.",
+           D1:"Not him | He's forty yards from the ball." } },
+  say:"Three players. Count the passes: one, two, and he's in.",
+  why:["The defending lesson sits underneath: the third defender was ball-watching, which is a failure of balance.",
+       "Worth replaying with the hold option so the room sees both endings."],
+  next:"Next"
+},
+{
+  kind:"info", time:40, label:"Who finishes", hi:["mobility","support"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A3",
+  at:{A3:"A3_run"}, tags:{A3:"1st ATT", D3:"1st DEF"},
+  q:"The player who finishes never received from the player who started it.",
+  a:"That's the whole idea. The striker's job was to hold it and give it back. The runner's job was to go before anything looked on.",
+  say:"Ask them who did the most work in that move. It wasn't either of the players who touched it first.",
+  why:["Transfer to the field: any rondo or possession game where a goal only counts if the ball goes forward, back, and forward again to a different player."],
+  next:"Start over"
+}
+];
+
+/* ---------- 7. THE SWITCH ---------- */
+var SW_P = {
+  A1:{t:"a", x:480, y:480, n:"8"},
+  A2:{t:"a", x:640, y:355, n:"9"},
+  A3:{t:"a", x:560, y:110, n:"11"},
+  D1:{t:"d", x:560, y:470, n:"3"},
+  D2:{t:"d", x:725, y:430, n:"5"},
+  D3:{t:"d", x:700, y:275, n:"4"}
+};
+var SW_SPOT = {
+  A1_carry:{x:575, y:415}
+};
+var SW_STEPS = [
+{
+  kind:"tap", time:55, label:"Doing nothing", hi:["width"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  q:"Everybody has shifted to the ball. Tap the most dangerous attacker on the field.",
+  ask:{ answer:"A3", tag:{A3:"WIDTH"},
+    ok:"Him | He has done nothing for thirty seconds and there isn't a defender within forty yards of him. That is what staying wide buys.",
+    miss:{ A1:"He has the ball | And three defenders around him. Look for the one nobody is near.",
+           A2:"Not quite | He's got company. Look further away from the ball." } },
+  say:"Let them look for a second before anyone taps.",
+  why:["<b>Most rooms tap the player with the ball.</b> That instinct is exactly the one this scenario exists to break.",
+       "The kid who stays wide and gets nothing for a whole half is the kid who wins you the game in the sixty-fifth minute. Tell them that out loud."],
+  next:"Next"
+},
+{
+  kind:"talk", time:75, label:"How does it get there?", hi:["width","penetration"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{A3:"WIDTH"},
+  q:"So how does the ball reach him?",
+  choices:[
+    {t:"Dribble across", tone:"poor", at:{A1:"A1_carry"}, mark:{poor:["A1"]},
+     r:"Straight into the crowd | Three defenders between him and the far side, and he's carrying the ball at exactly the speed they can shuffle across."},
+    {t:"Switch it first time", tone:"good", ball:"A3", mark:{good:["A3"]},
+     r:"Width pays | One pass moves the whole defence, and a pass travels faster than three defenders can run. By the time they arrive he's already going."}
+  ],
+  say:"A pass beats a dribble across the field every single time.",
+  why:["The measurable version for players: the ball moves faster than any of you. If the ball has to travel a long way, pass it. If it has to travel a short way, carry it.",
+       "This is also why a switch is worth practising as its own skill \u2014 it's a long pass under no pressure, and young players are rarely asked to make one."],
+  next:"Next"
+},
+{
+  kind:"tap", time:65, label:"Too late", hi:["balance","delay"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A3", tags:{A3:"1st ATT"},
+  q:"The wide attacker has it. Who's the first defender now?",
+  ask:{ answer:"D3", tag:{D3:"1st DEF"},
+    ok:"First defender | Technically. He's a long run from the ball, which means for the next two seconds nobody is actually defending.",
+    miss:{ D1:"Further still | He's on the wrong side of the field entirely.",
+           D2:"Further still | He shifted with everyone else and now he's nowhere." } },
+  say:"Ask how long it takes him to get there. That gap is the whole point.",
+  why:["<b>This is a failure of balance,</b> and it's worth naming as such. Somebody on that back line should have stayed honest to the far side.",
+       "Run <b>The wide ball</b> straight after this one. Same idea from the defending end, and the pair together is better than either alone."],
+  next:"Next"
+},
+{
+  kind:"info", time:40, label:"The second", hi:["width","balance"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A3",
+  tags:{A3:"1st ATT", D3:"1st DEF"},
+  q:"Width doesn't score. It buys the second when nobody is there.",
+  a:"The far-side player didn't beat anyone and didn't do anything clever. He stood still in the right place while everybody else came to the ball.",
+  say:"Two seconds of nobody near you is more than most players get all game.",
+  why:["Transfer to the field: in small-sided games, award a bonus for any goal that follows a switch. It changes how they look up within one session."],
+  next:"Start over"
+}
+];
+
+/* ---------- 8. DEFENDING THE CROSS ---------- */
+var CR_P = {
+  A1:{t:"a", x:780, y:550, n:"7"},
+  A2:{t:"a", x:860, y:350, n:"9"},
+  A3:{t:"a", x:720, y:230, n:"10"},
+  D1:{t:"d", x:830, y:490, n:"3"},
+  D2:{t:"d", x:915, y:310, n:"5"},
+  D3:{t:"d", x:800, y:270, n:"4"}
+};
+var CR_SPOT = {
+  D3_out    :{x:745, y:400},
+  D3_balance:{x:790, y:235}
+};
+var CR_STEPS = [
+{
+  kind:"tap", time:45, label:"On the ball", hi:["delay"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  q:"A cross is coming. Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | Nearest the ball, and his job is to make the cross a bad one \u2014 not to win the ball.",
+    miss:{ D2:"Not him | He's in the middle. Start from the ball.",
+           D3:"Not him | Start from the ball." } },
+  say:"His job isn't to block it. It's to make it a worse cross.",
+  why:["Young defenders lunge at crossers and get skinned. The instruction is: get close enough to matter, stay on your feet, force it early or force it high."],
+  next:"Next"
+},
+{
+  kind:"tap", time:50, label:"In the middle", hi:["delay","cover"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{D1:"1st DEF"},
+  q:"Who's the second defender?",
+  ask:{ answer:"D2", tag:{D2:"2nd DEF"},
+    ok:"Second defender | Goal-side of the striker, close enough to touch him. This is the one job nobody argues about.",
+    miss:{ D3:"Not him | Someone is tighter to the danger.",
+           D1:"He's the first defender | Look at who's guarding the man in the middle." } },
+  say:"Everyone gets this one right. The next question is the one they get wrong.",
+  why:["Deliberately easy, so the third defender's question lands with more weight."],
+  next:"Next"
+},
+{
+  kind:"talk", time:85, label:"The third one", hi:["balance","cover"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  tags:{D1:"1st DEF", D2:"2nd DEF"},
+  q:"And the third defender. Where does he go?",
+  choices:[
+    {t:"Help press the crosser", tone:"poor", at:{D3:"D3_out"}, mark:{poor:["D3"]},
+     r:"Two on the ball, nobody on the runner | The crosser was already being dealt with. Now the player arriving late has the entire penalty area to himself, and he's the one who scores."},
+    {t:"Watch the space and the late runner", tone:"good", at:{D3:"D3_balance"}, mark:{good:["D3"]},
+     r:"Balance | His job is the space and the man nobody else can see. Not the ball, not the striker \u2014 the danger that hasn't arrived yet."}
+  ],
+  say:"Crosses are not won by the players watching the ball.",
+  why:["<b>The late runner is how most crosses are scored at every level.</b> Two defenders ball-watching and one arriving unmarked.",
+       "Practical instruction: the furthest defender from the ball turns his head away from it. If he's watching the flight, he's already beaten.",
+       "This is the clearest picture of balance in the whole tool \u2014 the job is defined entirely by what's happening away from the ball."],
+  next:"Next"
+},
+{
+  kind:"info", time:40, label:"Heads", hi:["balance"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  at:{D3:"D3_balance"}, tags:{D1:"1st DEF", D2:"2nd DEF", D3:"BALANCE"},
+  q:"Nobody defends a cross by watching the ball.",
+  a:"Somebody has to be looking the other way. If all three heads turn to the flight, the goal is already scored and none of them saw it coming.",
+  say:"Ask them who scores most of the goals from crosses. It's the one arriving, every time.",
+  why:["Transfer to the field: any crossing drill where you quietly send an extra runner in late without telling the defenders. They only learn it by being beaten by it once."],
+  next:"Start over"
+}
+];
+
+/* ---------- 9. THE OVERLAP ---------- */
+var OV_P = {
+  A1:{t:"a", x:520, y:480, n:"7"},
+  A2:{t:"a", x:400, y:545, n:"2"},
+  A3:{t:"a", x:700, y:300, n:"9"},
+  D1:{t:"d", x:620, y:460, n:"3"},
+  D2:{t:"d", x:760, y:330, n:"5"}
+};
+var OV_SPOT = {
+  A2_hold   :{x:400, y:545},
+  A2_overlap:{x:660, y:555}
+};
+var OV_STEPS = [
+{
+  kind:"tap", time:45, label:"One against one", hi:["delay"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1",
+  q:"Wide player on the ball. Who's the first defender?",
+  ask:{ answer:"D1", tag:{D1:"1st DEF"},
+    ok:"First defender | One against one, and right now he only has one thing to think about.",
+    miss:{ D2:"Not him | He's inside, dealing with the striker." } },
+  say:"Note how comfortable that defender is. One problem, one solution.",
+  why:["Establishing the 1v1 first is what makes the overlap feel like a gift when it arrives."],
+  next:"Next"
+},
+{
+  kind:"talk", time:80, label:"Overlap or hold?", hi:["mobility","width"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1", tags:{D1:"1st DEF"},
+  q:"The attacking full back behind him. Does he go?",
+  choices:[
+    {t:"Hold his position", tone:"poor", at:{A2:"A2_hold"}, mark:{poor:["A2"]},
+     r:"One against one, forever | The defender has one player to watch, so he can stand off, stay patient and wait. Nothing has been asked of him."},
+    {t:"Overlap on the outside", tone:"good", at:{A2:"A2_overlap"}, mark:{good:["A2"]},
+     r:"Mobility into width | Now the defender has two problems and can only solve one. Nobody beat him. Somebody just ran past him."}
+  ],
+  say:"He didn't create that space by being good. He created it by running.",
+  why:["<b>This is the cheapest goal-creating action in soccer</b> and the one young players do least, because it usually ends with them not getting the ball.",
+       "Tell them plainly: most overlaps are decoys, and a decoy that drags a defender has done its job. If you only run when you expect the pass, you'll never make the run that works."],
+  next:"Next"
+},
+{
+  kind:"tap", time:65, label:"Two on one", hi:["mobility","penetration","support"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A1",
+  at:{A2:"A2_overlap"}, tags:{D1:"1st DEF", A2:"MOBILITY"},
+  q:"He's gone outside. Play it.",
+  action:{ t:"Play the overlap", ball:"A2", tags:{},
+           q:"Who's the first attacker now?" },
+  ask:{ answer:"A2", tag:{A2:"1st ATT"},
+    ok:"First attacker | And he's outside the defender with the whole byline in front of him. A two against one, created by one run.",
+    miss:{ A1:"He was | He gave it and stayed. Look at who's got it now.",
+           A3:"Not him | He's waiting in the middle for what comes next." } },
+  say:"Two against one, and neither of them beat anybody.",
+  why:["Worth pointing out the defender's dilemma out loud: the moment he steps to the overlapping player, the inside is open, and the moment he stays inside, the outside is open. There is no correct answer for him. That's what an overload means."],
+  next:"Next"
+},
+{
+  kind:"info", time:40, label:"One run", hi:["mobility","width"],
+  cast:["A1","A2","A3","D1","D2"], ball:"A2",
+  at:{A2:"A2_overlap"}, tags:{A2:"1st ATT", D1:"1st DEF"},
+  q:"A two against one, out of nothing. One player ran.",
+  a:"No skill, no trick, no beating anybody. A defender who was completely comfortable ten seconds ago now cannot be right.",
+  say:"That's the whole move. One player ran.",
+  why:["Transfer to the field: in any wide game, a goal counts double if an overlapping player was involved \u2014 whether or not he touched the ball."],
+  next:"Start over"
+}
+];
+
+/* ---------- 10. ONE AGAINST ONE ---------- */
+var ISO_P = {
+  A1:{t:"a", x:540, y:320, n:"10"},
+  D1:{t:"d", x:700, y:320, n:"4"}
+};
+var ISO_SPOT = {
+  D1_commit:{x:610, y:320},
+  D1_show  :{x:665, y:365}
+};
+var ISO_STEPS = [
+{
+  kind:"talk", time:75, label:"Defender first", hi:["delay","control"],
+  cast:["A1","D1"], ball:"A1",
+  q:"Nothing else on the field. What does the defender do?",
+  choices:[
+    {t:"Go and win it", tone:"fair", at:{D1:"D1_commit"}, mark:{poor:["D1"]},
+     r:"Sometimes | He isn't outnumbered here, so it's not reckless. But he's got no cover behind him, and if he goes to ground and misses there is nothing left."},
+    {t:"Stay on his feet, show him one way", tone:"good", at:{D1:"D1_show"}, mark:{good:["D1"]},
+     r:"Control | Stay big, don't commit, force him onto his weaker side and make him beat you twice. Most attackers run out of ideas before they run out of tricks."}
+  ],
+  say:"No cover, no help, nothing to hide behind. This is control in its purest form.",
+  why:["Stripping the field to two players is the point \u2014 there is no other principle available, so neither side can hide behind shape.",
+       "The instruction that works with young defenders: <b>make him beat you twice.</b> Slow him, show him one side, and make the second touch as hard as the first."],
+  next:"Next"
+},
+{
+  kind:"talk", time:80, label:"Attacker's turn", hi:["creativity","penetration"],
+  cast:["A1","D1"], ball:"A1", at:{D1:"D1_show"}, tags:{D1:"1st DEF"},
+  q:"And the attacker?",
+  choices:[
+    {t:"Take him on", tone:"good", mark:{good:["A1"]},
+     r:"Creativity | This is the one place on the field where losing the ball costs you almost nothing and beating him costs the defence everything. Let them try it, every time."},
+    {t:"Pass backwards", tone:"fair",
+     r:"Safe, and sometimes right | There's nobody to pass to here, though. And a player who never takes anyone on never finds out what he can do."},
+    {t:"Stand still and wait", tone:"poor", mark:{poor:["A1"]},
+     r:"The defender is delighted | Every second you hold it, another defender is running back. The one-against-one you had is gone."}
+  ],
+  say:"This is where you shut up on the sideline and let them try things.",
+  why:["<b>The single most damaging thing a coach does is shout at a player for losing the ball in a one against one in the attacking third.</b> Do it twice and the player stops attempting anything for a season.",
+       "The rule worth saying out loud to a team: in their half, take people on. In our half, don't. Same player, two different permissions."],
+  next:"Next"
+},
+{
+  kind:"info", time:40, label:"Let them try", hi:["creativity","control"],
+  cast:["A1","D1"], ball:"A1", at:{D1:"D1_show"}, tags:{A1:"1st ATT", D1:"1st DEF"},
+  q:"Creativity against control, with nothing else on the field.",
+  a:"The attacker is allowed to gamble because the downside is small. The defender is not allowed to gamble because the downside is a goal. Same moment, opposite permissions.",
+  say:"That last line is the whole pair, and it's the one they'll remember.",
+  why:["Transfer to the field: a one-against-one ladder where nobody keeps score. The moment you score it, the attackers stop trying things and the defenders start diving in."],
+  next:"Start over"
+}
+];
+
+var SCEN = [
+  {id:"session", name:"Full session \u2014 all ten", field:"third", tracks:true,
+   P:SESS_P,  SPOT:SESS_SPOT,  STEPS:SESS_STEPS},
+  {id:"wide",   name:"The wide ball", field:"third",
+   P:WIDE_P,  SPOT:WIDE_SPOT,  STEPS:WIDE_STEPS},
+  {id:"turn",   name:"The turnover", field:"full",
+   P:TURN_P,  SPOT:TURN_SPOT,  STEPS:TURN_STEPS},
+  {id:"ctr",    name:"Counter, 3 v 2", field:"third",
+   P:CTR_P,   SPOT:CTR_SPOT,   STEPS:CTR_STEPS},
+  {id:"build",  name:"Building out", field:"full",
+   P:BUILD_P, SPOT:BUILD_SPOT, STEPS:BUILD_STEPS},
+  {id:"over",   name:"Overload, 3 v 1", field:"third",
+   P:OVER_P,  SPOT:OVER_SPOT,  STEPS:OVER_STEPS},
+  {id:"third",  name:"Third-man run", field:"third",
+   P:THIRD_P, SPOT:THIRD_SPOT, STEPS:THIRD_STEPS},
+  {id:"switch", name:"The switch", field:"third",
+   P:SW_P,    SPOT:SW_SPOT,    STEPS:SW_STEPS},
+  {id:"cross",  name:"Defending the cross", field:"third",
+   P:CR_P,    SPOT:CR_SPOT,    STEPS:CR_STEPS},
+  {id:"lap",    name:"The overlap", field:"third",
+   P:OV_P,    SPOT:OV_SPOT,    STEPS:OV_STEPS},
+  {id:"iso",    name:"One against one", field:"third",
+   P:ISO_P,   SPOT:ISO_SPOT,   STEPS:ISO_STEPS}
+];
+
+var scenIdx = 0;
+var P = SESS_P, SPOT = SESS_SPOT, STEPS = SESS_STEPS, ORIG = null;
+function scen(){ return SCEN[scenIdx]; }
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function loadScenario(n){
+  scenIdx = Math.max(0, Math.min(SCEN.length - 1, n));
+  var sc = SCEN[scenIdx];
+  P = sc.P; SPOT = sc.SPOT; STEPS = clone(sc.STEPS); ORIG = clone(sc.STEPS);
+  if (!sc.tracks) trackIdx = 0;
+  document.getElementById("scenSel").value = scenIdx + "|" + trackIdx;
+  right = 0; asked = 0;
+  hidePop(); hideTip();
+  drawField(sc.field);
+  buildSeq(); goSeq(0);
+}
+function split1(s){
+  var k = s.indexOf("|");
+  return k < 0 ? {h:"", b:s} : {h:s.slice(0,k).trim(), b:s.slice(k+1).trim()};
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var TRACKS = [{key:"F",name:"Full session"},{key:"S",name:"Short session"}];
+var trackIdx = 0, seq = [], pos_ = 0, cur = null;
+var askIdx = 0, resolved = false, acted = false, collapsed = false;
+var tried = {}, hitId = null, entering = [];
+var markGood = [], markPoor = [], chosen = -1, base = null, firstMiss = false, zonePicked = null;
+var right = 0, asked = 0, notesOpen = true;
+
+function track(){ return TRACKS[trackIdx].key; }
+function buildSeq(){
+  seq = [];
+  var ht = SCEN[scenIdx].tracks;
+  STEPS.forEach(function(s,n){
+    if (ht && s.track.indexOf(track()) < 0) return;
+    if (s.coachOnly && !notesOpen) return;   // closed notes = the version for players
+    seq.push(n);
+  });
+}
+function trackTotal(){ var t = 0; seq.forEach(function(n){ t += STEPS[n].time; }); return t; }
+function mmss(s){ return Math.floor(s/60) + ":" + ("0" + (s%60)).slice(-2); }
+
+/* ============================================================
+   FIELD
+   ============================================================ */
+var NS = "http://www.w3.org/2000/svg";
+var pitch = document.getElementById("pitch");
+var pop = document.getElementById("pop");
+
+function el(tag, attrs, parent){
+  var n = document.createElementNS(NS, tag);
+  for (var k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+function drawField(mode){
+  pitch.innerHTML = "";
+  var defs = el("defs", {}, pitch);
+  var g = el("linearGradient", {id:"turf", x1:"0", y1:"0", x2:"1", y2:"1"}, defs);
+  el("stop", {offset:"0", "stop-color":"#1C5D45"}, g);
+  el("stop", {offset:"1", "stop-color":"#154B36"}, g);
+  el("rect", {x:0, y:0, width:1000, height:640, fill:"url(#turf)"}, pitch);
+  for (var s2=1; s2<6; s2+=2) el("rect", {x:s2*167, y:0, width:167, height:640, fill:"#FFF", opacity:".025"}, pitch);
+
+  function line(d, w, o){
+    el("path", {d:d, fill:"none", stroke:"rgba(240,255,248," + (o||".32") + ")", "stroke-width":(w||3)}, pitch);
+  }
+  var full = (mode === "full");
+  var left = full ? 38 : 20;
+
+  line("M " + left + " 34 L 962 34");
+  line("M " + left + " 606 L 962 606");
+  line("M 962 34 L 962 606");
+
+  // attacking goal, always on the right
+  line("M 962 128 L 790 128 L 790 512 L 962 512");
+  line("M 962 236 L 900 236 L 900 404 L 962 404");
+  line("M 790 258 A 92 92 0 0 0 790 382");
+  line("M 962 268 L 986 268 M 962 372 L 986 372 M 986 268 L 986 372", 5, ".6");
+  el("circle", {cx:872, cy:320, r:4, fill:"rgba(240,255,248,.4)"}, pitch);
+
+  if (full){
+    line("M 38 34 L 38 606");
+    line("M 500 34 L 500 606");
+    line("M 500 230 A 90 90 0 0 0 500 410");
+    line("M 500 230 A 90 90 0 0 1 500 410");
+    line("M 38 128 L 210 128 L 210 512 L 38 512");
+    line("M 38 236 L 100 236 L 100 404 L 38 404");
+    line("M 210 258 A 92 92 0 0 1 210 382");
+    line("M 38 268 L 14 268 M 38 372 L 14 372 M 14 268 L 14 372", 5, ".6");
+    el("circle", {cx:128, cy:320, r:4, fill:"rgba(240,255,248,.4)"}, pitch);
+  }
+
+  var kx = full ? 60 : 34;
+  el("circle", {cx:kx, cy:584, r:7, fill:"#FFC61E", opacity:".75"}, pitch);
+  var t1 = el("text", {x:kx+15, y:590, fill:"rgba(240,255,248,.45)", "font-size":"15",
+    "font-family":"ui-monospace,monospace", "letter-spacing":"2"}, pitch);
+  t1.textContent = "ATTACK \u2192";
+  el("circle", {cx:kx+156, cy:584, r:7, fill:"#5AB0E8", opacity:".75"}, pitch);
+  var t2 = el("text", {x:kx+171, y:590, fill:"rgba(240,255,248,.45)", "font-size":"15",
+    "font-family":"ui-monospace,monospace", "letter-spacing":"2"}, pitch);
+  t2.textContent = "DEFEND";
+
+  el("g", {id:"zones"}, pitch);
+  el("g", {id:"units"}, pitch);
+  el("g", {id:"ballL"}, pitch);
+}
+
+function at(id){
+  if (cur.at && cur.at[id] && SPOT[cur.at[id]]) return SPOT[cur.at[id]];
+  return {x:P[id].x, y:P[id].y};
+}
+
+function drawUnits(){
+  var units = document.getElementById("units");
+  var cast = cur.cast || [];
+  var tags = cur.tags || {};
+
+  // drop anyone no longer on the field
+  [].slice.call(units.children).forEach(function(n){
+    if (cast.indexOf(n.getAttribute("data-id")) < 0) units.removeChild(n);
+  });
+
+  cast.forEach(function(id, idx){
+    var p = at(id);
+    var isA = P[id].t === "a";
+    var col = isA ? "#FFC61E" : "#5AB0E8";
+    var isHit = (hitId === id), isGood = markGood.indexOf(id) > -1;
+    var isTried = !!tried[id] || markPoor.indexOf(id) > -1;
+
+    // reuse the existing node so a transform change transitions instead of teleporting
+    var u = units.querySelector('[data-id="' + id + '"]');
+    var fresh = !u;
+    if (fresh) u = el("g", {"class":"unit", "data-id":id}, units);
+    else while (u.firstChild) u.removeChild(u.firstChild);
+    u.setAttribute("transform", "translate(" + p.x + "," + p.y + ")");
+
+    var b = el("g", {"class":"disc", tabindex:"0", role:"button"}, u);
+    b.setAttribute("aria-label", (isA ? "Attacker " : "Defender ") + P[id].n);
+    if (fresh && entering.indexOf(id) > -1){
+      b.setAttribute("class", "disc enter");
+      b.style.animationDelay = (entering.indexOf(id) * 95) + "ms";
+    }
+
+    el("circle", {"class":"halo", r:44, fill:col}, b);
+    el("circle", {r:36, fill:"transparent"}, b);
+    if (isHit || isGood) el("circle", {r:35, fill:"none", stroke:"#74D6A4", "stroke-width":5}, b);
+    else if (isTried)    el("circle", {r:35, fill:"none", stroke:"#F2795C", "stroke-width":5}, b);
+    el("circle", {r:25, fill:col, stroke:"rgba(10,25,32,.5)", "stroke-width":2,
+      opacity:(isTried && !isHit && !isGood) ? ".6" : "1"}, b);
+
+    var num = el("text", {"text-anchor":"middle", y:8, fill:"#0E1C26", "font-size":"24",
+      "font-weight":"800", "font-family":"ui-sans-serif,system-ui,sans-serif", "pointer-events":"none"}, b);
+    num.textContent = P[id].n;
+
+    if (isHit){
+      var ck = el("g", {transform:"translate(20,-20)", "pointer-events":"none"}, b);
+      el("circle", {r:12, fill:"#74D6A4"}, ck);
+      el("path", {d:"M -5 0 L -1.5 4 L 5.5 -4", fill:"none", stroke:"#0E1C26",
+        "stroke-width":3, "stroke-linecap":"round", "stroke-linejoin":"round"}, ck);
+    }
+
+    b.addEventListener("click", function(){ onTap(id); });
+    b.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); onTap(id); }
+    });
+
+    if (tags[id]){
+      var label = tags[id], w = label.length * 8.2 + 16;
+      var tg = el("g", {"pointer-events":"none"}, u);
+      el("rect", {x:-w/2, y:-58, width:w, height:24, rx:5, fill:"#0E1C26",
+        stroke:col, "stroke-width":1.5, opacity:".95"}, tg);
+      var tx = el("text", {"text-anchor":"middle", y:-41, fill:col, "font-size":"13",
+        "font-weight":"800", "letter-spacing":"1",
+        "font-family":"ui-sans-serif,system-ui,sans-serif"}, tg);
+      tx.textContent = label;
+    }
+  });
+}
+
+function drawBall(){
+  var g = document.getElementById("ballL");
+  var b = g.firstChild;
+  if (!cur.ball){ if (b) g.removeChild(b); return; }
+  var p = at(cur.ball);
+  if (!b){
+    b = el("g", {"class":"ball", "pointer-events":"none"}, g);
+    el("circle", {r:11, fill:"#FFF", stroke:"rgba(10,25,32,.45)", "stroke-width":2}, b);
+    el("circle", {r:4, fill:"#0E1C26", opacity:".7"}, b);
+  }
+  b.setAttribute("transform", "translate(" + (p.x + 30) + "," + (p.y + 22) + ")");
+}
+
+function drawZones(){
+  var g = document.getElementById("zones");
+  g.innerHTML = "";
+  if (!cur.zones) return;
+  cur.zones.forEach(function(key){
+    var p = SPOT[key];
+    var tone = (cur.zoneTone && cur.zoneTone[key]) || "fair";
+    var picked = (zonePicked === key);
+    var col = !zonePicked ? "#B9A6FF"
+            : picked ? (tone === "good" ? "#74D6A4" : tone === "poor" ? "#F2795C" : "#B9A6FF")
+            : "#7E8E97";
+    var z = el("g", {class:"disc", tabindex:"0", role:"button"}, g);
+    z.setAttribute("aria-label", "Zone option");
+    el("circle", {cx:p.x, cy:p.y, r:52, fill:col, opacity:picked ? ".2" : ".1"}, z);
+    el("circle", {cx:p.x, cy:p.y, r:52, fill:"none", stroke:col, "stroke-width":picked ? 4 : 3,
+      "stroke-dasharray":picked ? "none" : "9 8", opacity:picked ? "1" : ".7"}, z);
+    var q = el("text", {x:p.x, y:p.y + 10, "text-anchor":"middle", fill:col,
+      "font-size":"30", "font-weight":"800", "pointer-events":"none",
+      "font-family":"ui-sans-serif,system-ui,sans-serif"}, z);
+    q.textContent = picked ? (tone === "good" ? "\u2713" : tone === "poor" ? "\u2715" : "?") : "?";
+    z.addEventListener("click", function(){ onZone(key); });
+    z.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); onZone(key); }
+    });
+  });
+}
+
+/* ============================================================
+   THE CALLOUT — anchored to whatever was tapped
+   ============================================================ */
+function docked(){ return window.matchMedia("(max-width: 560px)").matches; }
+
+function showPop(anchor, text, tone){
+  var t = split1(text);
+  document.getElementById("popH").textContent = t.h;
+  document.getElementById("popB").textContent = t.b;
+  pop.setAttribute("data-tone", tone);
+  pop.hidden = false;
+  pop.classList.remove("show");
+
+  if (docked()){
+    pop.setAttribute("data-nib", "x");
+    pop.style.left = ""; pop.style.top = "";
+    void pop.offsetWidth; pop.classList.add("show");
+    return;
+  }
+
+  pop.style.left = "0px"; pop.style.top = "0px";
+  var wrap = document.getElementById("fieldwrap").getBoundingClientRect();
+  var fr = document.getElementById("field").getBoundingClientRect();
+  if (!fr.width){ pop.classList.add("show"); return; }
+  var sx = fr.width / 1000, sy = fr.height / 640;
+  var pw = pop.offsetWidth / sx, ph = pop.offsetHeight / sy;   // layout size, unscaled
+
+  // everything the callout should stay off, weighted by how much it matters
+  var obs = [];
+  var qr = document.getElementById("panel").getBoundingClientRect();
+  obs.push({x0:(qr.left-fr.left)/sx - 8, y0:(qr.top-fr.top)/sy - 8,
+            x1:(qr.right-fr.left)/sx + 8, y1:(qr.bottom-fr.top)/sy + 8, w:10});
+  (cur.cast || []).forEach(function(id){
+    var p = at(id);
+    obs.push({x0:p.x-34, y0:p.y-34, x1:p.x+34, y1:p.y+34, w:5});
+    var lab = (cur.tags || {})[id];
+    if (lab){
+      var hw = (lab.length * 8.2 + 16) / 2 + 4;
+      obs.push({x0:p.x-hw, y0:p.y-64, x1:p.x+hw, y1:p.y-28, w:3});
+    }
+  });
+  (cur.zones || []).forEach(function(k){
+    var p = SPOT[k];
+    obs.push({x0:p.x-56, y0:p.y-56, x1:p.x+56, y1:p.y+56, w:4});
+  });
+
+  var g = 46;
+  var cands = [
+    [anchor.x+g,     anchor.y-ph/2],  [anchor.x-g-pw,  anchor.y-ph/2],
+    [anchor.x+g,     anchor.y-ph+20], [anchor.x-g-pw,  anchor.y-ph+20],
+    [anchor.x+g,     anchor.y-20],    [anchor.x-g-pw,  anchor.y-20],
+    [anchor.x-pw/2,  anchor.y-g-ph],  [anchor.x-pw/2,  anchor.y+g],
+    [anchor.x-pw+34, anchor.y-g-ph],  [anchor.x-34,    anchor.y+g],
+    [anchor.x-pw+34, anchor.y+g],     [anchor.x-34,    anchor.y-g-ph]
+  ];
+  var nStruct = cands.length;
+  for (var gx = 10; gx <= 990 - pw; gx += 52)
+    for (var gy = 10; gy <= 630 - ph; gy += 52) cands.push([gx, gy]);
+
+  var bx = 8, by = 8, bs = Infinity;
+  cands.forEach(function(c, i){
+    var x = Math.max(8, Math.min(992 - pw, c[0]));
+    var y = Math.max(8, Math.min(632 - ph, c[1]));
+    var dx = (x + pw/2) - anchor.x, dy = (y + ph/2) - anchor.y;
+    var sc = Math.sqrt(dx*dx + dy*dy) / 34;      // stay near the player...
+    if (i < nStruct) sc -= 1.6;
+    obs.forEach(function(o){                      // ...unless something is in the way
+      var ox = Math.min(x + pw, o.x1) - Math.max(x, o.x0);
+      var oy = Math.min(y + ph, o.y1) - Math.max(y, o.y0);
+      if (ox > 0 && oy > 0) sc += (ox * oy) / 300 * o.w;
+    });
+    if (sc < bs){ bs = sc; bx = x; by = y; }
+  });
+
+  pop.style.left = ((fr.left - wrap.left) + bx * sx) + "px";
+  pop.style.top  = ((fr.top  - wrap.top)  + by * sy) + "px";
+
+  // pointer on whichever edge faces the player, hidden if we had to move far
+  var nib = pop.querySelector(".nib"), side = "x", off;
+  nib.style.top = nib.style.bottom = nib.style.left = nib.style.right = "";
+  if (anchor.x < bx - 2)              side = "l";
+  else if (anchor.x > bx + pw + 2)    side = "r";
+  else if (anchor.y < by - 2)         side = "t";
+  else if (anchor.y > by + ph + 2)    side = "b";
+  var gapX = Math.max(0, Math.max(bx - anchor.x, anchor.x - (bx + pw)));
+  var gapY = Math.max(0, Math.max(by - anchor.y, anchor.y - (by + ph)));
+  if (Math.max(gapX, gapY) > 120) side = "x";
+  pop.setAttribute("data-nib", side);
+  if (side === "l" || side === "r"){
+    off = Math.max(12, Math.min(ph - 22, anchor.y - by)) * sy;
+    nib.style.top = (off - 5) + "px";
+    if (side === "l") nib.style.left = "-6.5px"; else nib.style.right = "-6.5px";
+  } else if (side === "t" || side === "b"){
+    off = Math.max(12, Math.min(pw - 22, anchor.x - bx)) * sx;
+    nib.style.left = (off - 5) + "px";
+    if (side === "t") nib.style.top = "-6.5px"; else nib.style.bottom = "-6.5px";
+  }
+
+  void pop.offsetWidth;
+  pop.classList.add("show");
+}
+
+function hidePop(){ pop.classList.remove("show"); pop.hidden = true; }
+
+/* ============================================================
+   INTERACTION
+   ============================================================ */
+function currentAsk(){
+  if (cur.action && !acted) return null;
+  if (cur.ask) return cur.ask;
+  if (cur.asks) return cur.asks[askIdx];
+  return null;
+}
+function merge(a,b){ var o={},k; for(k in (a||{}))o[k]=a[k]; for(k in (b||{}))o[k]=b[k]; return o; }
+
+function missFor(ask, id){
+  if (ask.miss && ask.miss[id]) return ask.miss[id];
+  if (P[id].t === P[ask.answer].t)
+    return "Not this one | Look again \u2014 start from the ball.";
+  return P[ask.answer].t === "a"
+    ? "Wrong team | That's a blue defender. You're looking for a yellow attacker."
+    : "Wrong team | That's a yellow attacker. You're looking for a blue defender.";
+}
+
+function onTap(id){
+  var ask = currentAsk();
+  if (!ask || resolved) return;
+  if (id === ask.answer){
+    resolved = true; hitId = id;
+    if (!firstMiss) right++;
+    asked++;
+    if (ask.tag) cur.tags = merge(cur.tags, ask.tag);
+    render();
+    showPop(at(id), ask.ok, "ok");
+  } else {
+    firstMiss = true; tried[id] = true;
+    render();
+    showPop(at(id), missFor(ask, id), "miss");
+  }
+}
+
+function onZone(key){
+  if (!cur.zoneResult) return;
+  var tone = (cur.zoneTone && cur.zoneTone[key]) || "fair";
+  zonePicked = key;
+  if (cur.zoneOwner){
+    var o = {}; o[cur.zoneOwner] = key;
+    cur.at   = merge(base.at, o);
+    cur.tags = merge(base.tags, (cur.zoneTag && cur.zoneTag[key]) || {});
+    cur.cast = base.cast.slice();
+    if (cur.cast.indexOf(cur.zoneOwner) < 0){
+      entering = [cur.zoneOwner];
+      cur.cast = cur.cast.concat([cur.zoneOwner]);
+    }
+    markGood = tone === "good" ? [cur.zoneOwner] : [];
+    markPoor = tone === "poor" ? [cur.zoneOwner] : [];
+  }
+  render();
+  showPop(SPOT[key], cur.zoneResult[key],
+          tone === "good" ? "ok" : (tone === "poor" ? "miss" : "talk"));
+}
+
+function pickChoice(ci){
+  var c = cur.choices[ci];
+  chosen = ci;
+  cur.at   = merge(base.at, c.at || {});
+  cur.ball = c.ball || base.ball;
+  cur.tags = merge(base.tags, c.tags || {});
+  markGood = (c.mark && c.mark.good) || [];
+  markPoor = (c.mark && c.mark.poor) || [];
+  render();
+}
+
+function doAction(){
+  var a = cur.action;
+  if (a.cast){
+    entering = a.cast.filter(function(id){ return cur.cast.indexOf(id) < 0; });
+    cur.cast = cur.cast.concat(entering);
+  }
+  if (a.ball) cur.ball = a.ball;
+  if (a.at) cur.at = merge(cur.at, a.at);
+  if (a.tags) cur.tags = a.tags;
+  acted = true; hidePop(); render();
+}
+
+function goSeq(k){
+  pos_ = Math.max(0, Math.min(seq.length - 1, k));
+  cur = clone(STEPS[seq[pos_]]);
+  askIdx = 0; resolved = false; acted = false; tried = {}; hitId = null; entering = [];
+  markGood = []; markPoor = []; chosen = -1; firstMiss = false;
+  zonePicked = null;
+  base = {at:clone(cur.at || {}), ball:cur.ball, tags:clone(cur.tags || {}), cast:clone(cur.cast || [])};
+  if (cur.coachOnly) notesOpen = true;     // its content lives in the right pane
+  hidePop(); render();
+}
+
+function nextAction(){
+  if (cur.asks && askIdx < cur.asks.length - 1){
+    askIdx++; resolved = false; tried = {}; hitId = null; firstMiss = false; hidePop(); render(); return;
+  }
+  if (pos_ >= seq.length - 1){ loadScenario(scenIdx); return; }
+  goSeq(pos_ + 1);
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  drawUnits(); drawBall(); drawZones();
+  var ask = currentAsk();
+
+  var panel = document.getElementById("panel");
+  panel.setAttribute("data-kind", cur.kind);
+  panel.classList.toggle("tall", cur.kind === "info");
+
+  var kicker = document.getElementById("kicker");
+  if (cur.kind === "tap") kicker.innerHTML = "Scored \u00b7 one right answer";
+  else if (cur.kind === "talk") kicker.innerHTML = "<em>Not scored \u00b7 talk about it</em>";
+  else kicker.innerHTML = "";
+
+  var qt = cur.q;
+  if (cur.asks && acted) qt = cur.asks[askIdx].q;
+  else if (cur.action && acted && cur.action.q) qt = cur.action.q;
+  document.getElementById("q").textContent = qt;
+
+  // steps written for the coach put their substance in the right pane
+  var toNotes = !!cur.coachOnly;
+  var textToNotes = toNotes && notesOpen;   // the QR never falls back, the text does
+  var body = document.getElementById("body");
+  body.innerHTML = textToNotes ? "" : (cur.a || "");
+  body.hidden = textToNotes || !cur.a;
+  var fy = document.getElementById("foryou");
+  fy.hidden = !toNotes;
+  document.getElementById("fybody").innerHTML = toNotes ? (cur.a || "") : "";
+  document.getElementById("qrN").hidden = !cur.qr;
+  var resp = document.getElementById("resp");
+  resp.hidden = true; resp.innerHTML = "";
+
+  var pr = document.getElementById("pairs");
+  pr.hidden = !cur.pairs;
+  if (cur.pairs) pr.innerHTML = cur.pairs.map(function(p){
+    return "<i>" + p[0] + "</i> \u2194 <u>" + p[1] + "</u>";
+  }).join("<br>");
+
+
+  var notesEl = document.getElementById("notes");
+  notesEl.classList.toggle("min", !notesOpen);
+  var nt = document.getElementById("notesToggle");
+  nt.textContent = notesOpen ? "\u203a" : "\u2039";
+  nt.setAttribute("aria-expanded", String(notesOpen));
+  var ntl = notesOpen ? "Hide coach notes \u2014 also hides the coach-only steps" : "Show coach notes";
+  nt.setAttribute("aria-label", ntl); nt.title = ntl;
+
+  var ch = document.getElementById("choices");
+  ch.innerHTML = "";
+  (cur.choices || []).forEach(function(c, ci){
+    var b = document.createElement("button");
+    b.className = "choice"; b.textContent = c.t;
+    b.setAttribute("data-tone", c.tone || "fair");
+    b.setAttribute("aria-pressed", String(ci === chosen));
+    b.addEventListener("click", function(){ pickChoice(ci); });
+    ch.appendChild(b);
+  });
+  if (chosen > -1 && cur.choices && cur.choices[chosen]){
+    var c2 = cur.choices[chosen], t2 = split1(c2.r);
+    resp.hidden = false;
+    resp.setAttribute("data-tone", c2.tone || "fair");
+    resp.innerHTML = t2.h ? ("<b>" + t2.h + "</b> " + t2.b) : t2.b;
+    var pb = document.getElementById("pbody");
+    pb.scrollTop = pb.scrollHeight;
+  }
+
+  // collapsed state — the question shrinks to a line, the controls stay put
+  panel.classList.toggle("min", collapsed);
+  document.getElementById("pill").textContent = qt;
+  var cb = document.getElementById("collapseBtn");
+  cb.textContent = collapsed ? "\u25be" : "\u25b4";
+  cb.setAttribute("aria-expanded", String(!collapsed));
+  var cbl = collapsed ? "Show the instructions" : "Hide the instructions";
+  cb.setAttribute("aria-label", cbl); cb.title = cbl;
+
+  var backBtn = document.getElementById("backBtn");
+  backBtn.hidden = pos_ === 0;
+  backBtn.textContent = collapsed ? "\u2039" : "Back";
+  backBtn.setAttribute("aria-label", "Back"); backBtn.title = "Back";
+
+  var actPending = !!(cur.action && !acted);
+  var actBtn = document.getElementById("actBtn");
+  actBtn.hidden = !actPending;
+  if (cur.action){
+    actBtn.textContent = collapsed ? "\u25b6" : cur.action.t;
+    actBtn.setAttribute("aria-label", cur.action.t); actBtn.title = cur.action.t;
+  }
+
+  var waiting = !!(ask && !resolved);
+  var label = waiting ? "Tap a player"
+            : (cur.asks && askIdx < cur.asks.length - 1) ? "Next question"
+            : (pos_ >= seq.length - 1) ? "Start over" : cur.next;
+  var nextBtn = document.getElementById("nextBtn");
+  nextBtn.hidden = actPending;
+  nextBtn.textContent = collapsed ? "\u203a" : label;
+  nextBtn.setAttribute("aria-label", label); nextBtn.title = label;
+  nextBtn.disabled = waiting;
+
+  document.getElementById("clock").textContent = mmss(cur.time);
+  document.getElementById("clockcap").innerHTML =
+    "Step " + (pos_ + 1) + " of " + seq.length + "<br>" + TRACKS[trackIdx].name + " runs " + mmss(trackTotal());
+  document.getElementById("say").textContent = cur.say;
+  var why = document.getElementById("why");
+  why.innerHTML = "";
+  (cur.why || []).forEach(function(w){ var li = document.createElement("li"); li.innerHTML = w; why.appendChild(li); });
+
+  paintRail(); paintTally(); paintLegend();
+  entering = [];
+}
+
+function paintRail(){
+  var rail = document.getElementById("rail");
+  rail.innerHTML = "";
+  seq.forEach(function(n, k){
+    var st = STEPS[n];
+    if (k > 0 && (st.track === "F") !== (STEPS[seq[k-1]].track === "F")){
+      var d = document.createElement("span"); d.className = "railgap"; rail.appendChild(d);
+    }
+    var b = document.createElement("button");
+    b.className = "pip";
+    b.setAttribute("data-kind", st.kind);
+    b.setAttribute("data-state", k < pos_ ? "done" : (k === pos_ ? "now" : "todo"));
+    b.title = (k + 1) + ". " + st.label + " \u00b7 " + mmss(st.time);
+    b.setAttribute("aria-label", b.title);
+    b.addEventListener("click", function(){ goSeq(k); });
+    rail.appendChild(b);
+  });
+}
+
+var EXPLAIN = {
+  penetration:"Get the ball forward, toward goal \u2014 by dribble, pass or shot. The first attacker's job, and the thing every other principle exists to enable or to stop.",
+  support:"Give the player on the ball an angle he can actually use: close enough to receive, placed so no defender is standing on the passing line. The second attacker's job.",
+  mobility:"Movement that disturbs the defence whether or not you get the ball. A run that drags a marker out of position has already done its work. The third attacker's job.",
+  width:"Use the full breadth of the field so defenders have to spread out. Width creates no chances by itself \u2014 it creates the space where chances happen.",
+  creativity:"Licence to try the low-percentage thing in the attacking third. The one principle a coach can permit but cannot install.",
+  delay:"Slow the attack down. Stay on your feet, angle the carrier away from goal, buy time for help to arrive. The first defender's job.",
+  cover:"Stand behind and inside the defender pressuring the ball, so that if he is beaten someone is still there. The second defender's job.",
+  balance:"Guard the dangerous space away from the ball. The defender furthest from play sees the runs nobody else can. The third defender's job.",
+  compactness:"Shrink the distance between defenders so the attack has to go around you rather than through you. The cost is the far-side player \u2014 that is the trade.",
+  control:"Restraint. No lunges, no gambles, no getting pulled out of shape. Attackers are allowed to gamble; defenders are not."
+};
+
+var PRIN = [
+  ["penetration","Penetration","delay","Delay"],
+  ["support","Support","cover","Cover"],
+  ["mobility","Mobility","balance","Balance"],
+  ["width","Width","compactness","Compactness"],
+  ["creativity","Creativity","control","Control"]
+];
+
+function showTip(e){
+  var it = e.currentTarget;
+  var k = it.getAttribute("data-k");
+  var tip = document.getElementById("tip");
+  document.getElementById("tipH").textContent = it.textContent;
+  document.getElementById("tipB").textContent = EXPLAIN[k] || "";
+  tip.setAttribute("data-side", it.getAttribute("data-side"));
+  tip.hidden = false;
+  var wr = document.getElementById("fieldwrap").getBoundingClientRect();
+  var ir = it.getBoundingClientRect();
+  var tw = tip.offsetWidth, th = tip.offsetHeight;
+  var x = (ir.left - wr.left) + ir.width / 2 - tw / 2;
+  x = Math.max(4, Math.min(wr.width - tw - 4, x));
+  var y = (ir.top - wr.top) - th - 8;
+  if (y < 4) y = (ir.bottom - wr.top) + 8;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+  void tip.offsetWidth; tip.classList.add("show");
+}
+function hideTip(){
+  var tip = document.getElementById("tip");
+  tip.classList.remove("show"); tip.hidden = true;
+}
+
+function buildLegend(){
+  var L = document.getElementById("legend");
+  L.innerHTML = "";
+  [["Attacking","a",1],["Defending","d",3]].forEach(function(row){
+    var c = document.createElement("span");
+    c.className = "lcap"; c.textContent = row[0]; L.appendChild(c);
+    PRIN.forEach(function(p){
+      var e = document.createElement("span");
+      e.className = "li";
+      e.setAttribute("data-side", row[1]);
+      e.setAttribute("data-k", p[row[2] - 1]);
+      e.setAttribute("tabindex", "0");
+      e.textContent = p[row[2]];
+      e.addEventListener("mouseenter", showTip);
+      e.addEventListener("mouseleave", hideTip);
+      e.addEventListener("focus", showTip);
+      e.addEventListener("blur", hideTip);
+      e.addEventListener("click", showTip);
+      L.appendChild(e);
+    });
+  });
+}
+
+function paintLegend(){
+  var inTrack = {}, soFar = {}, live = {};
+  seq.forEach(function(n, k){
+    (STEPS[n].hi || []).forEach(function(key){
+      inTrack[key] = 1;
+      if (k < pos_) soFar[key] = 1;
+    });
+  });
+  ((cur && cur.hi) || []).forEach(function(key){ live[key] = 1; });
+  [].forEach.call(document.querySelectorAll(".li"), function(e){
+    var k = e.getAttribute("data-k");
+    var st = live[k] ? "live" : (soFar[k] ? "done" : (inTrack[k] ? "todo" : "off"));
+    e.setAttribute("data-state", st);
+    e.title = (st === "off") ? "Not covered in this track \u2014 switch to Full session or Practice"
+                             : PRIN.reduce(function(a,p){
+                                 return p[0] === k ? p[1] + " \u2194 " + p[3]
+                                      : p[2] === k ? p[3] + " \u2194 " + p[1] : a; }, "");
+  });
+}
+
+function scoredTotal(){
+  var n = 0;
+  seq.forEach(function(k){
+    var st = STEPS[k];
+    if (st.asks) n += st.asks.length; else if (st.ask) n += 1;
+  });
+  return n;
+}
+function paintTally(){
+  document.getElementById("tally").innerHTML =
+    "SCORE <b>" + right + "</b> of " + scoredTotal();
+}
+
+/* ============================================================
+   CHROME
+   ============================================================ */
+document.getElementById("popX").addEventListener("click", hidePop);
+document.getElementById("notesToggle").addEventListener("click", function(){
+  notesOpen = !notesOpen;
+  var here = seq[pos_];
+  buildSeq();
+  var k = seq.indexOf(here);
+  if (k > -1){ pos_ = k; render(); }
+  else goSeq(Math.min(pos_, seq.length - 1));
+});
+document.getElementById("collapseBtn").addEventListener("click", function(){ collapsed = !collapsed; render(); });
+document.getElementById("backBtn").addEventListener("click", function(){ goSeq(pos_ - 1); });
+document.getElementById("actBtn").addEventListener("click", doAction);
+document.getElementById("nextBtn").addEventListener("click", nextAction);
+
+document.addEventListener("keydown", function(e){
+  if (e.target.tagName === "BUTTON" || (e.target.closest && e.target.closest(".disc"))) return;
+  if (e.key === "ArrowRight" && !(currentAsk() && !resolved)) nextAction();
+  if (e.key === "ArrowLeft" && pos_ > 0) goSeq(pos_ - 1);
+});
+
+function isNarrow(){ return window.matchMedia("(max-width: 900px)").matches; }
+if (isNarrow()) notesOpen = false;
+
+buildLegend();
+var sel = document.getElementById("scenSel");
+function opt(parent, val, label){
+  var o = document.createElement("option");
+  o.value = val; o.textContent = label; parent.appendChild(o);
+}
+SCEN.forEach(function(sc, n){
+  if (sc.tracks){
+    var g = document.createElement("optgroup");
+    g.label = sc.name;
+    TRACKS.forEach(function(t, ti){
+      var secs = 0;
+      sc.STEPS.forEach(function(st){ if (st.track.indexOf(t.key) > -1) secs += st.time; });
+      opt(g, n + "|" + ti, t.name + "  \u00b7  " + mmss(secs));
+    });
+    sel.appendChild(g);
+  }
+});
+var g2 = document.createElement("optgroup");
+g2.label = "Scenarios";
+SCEN.forEach(function(sc, n){
+  if (!sc.tracks){
+    var secs = 0; sc.STEPS.forEach(function(st){ secs += st.time; });
+    opt(g2, n + "|0", sc.name + "  \u00b7  " + mmss(secs));
+  }
+});
+sel.appendChild(g2);
+
+sel.addEventListener("change", function(){
+  var v = this.value.split("|");
+  trackIdx = parseInt(v[1], 10) || 0;
+  loadScenario(parseInt(v[0], 10));
+});
+sel.value = "0|0";
+loadScenario(0);
+</script>
+</body>
+</html>
