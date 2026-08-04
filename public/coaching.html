@@ -38,6 +38,17 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .railgap{width:1px;height:15px;background:var(--rule);margin:0 4px;flex:0 0 auto}
 .tally{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
 .tally b{color:var(--ok);font-size:15px}
+.streak{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-weight:800;color:var(--attack)}
+.streak .flame{font-size:14px}
+#streakN{font-size:15px}
+.streak.grow2 #streakN{font-size:19px}
+.streak.grow3 #streakN{font-size:23px}
+@keyframes streakpop{0%{transform:scale(1)}45%{transform:scale(1.55)}100%{transform:scale(1)}}
+.streak.pop{animation:streakpop .35s ease}
+.sndbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--rule);font-size:15px;
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.sndbtn:hover{background:rgba(255,255,255,.07)}
+.sndbtn[aria-pressed="true"]{border-color:var(--attack);background:rgba(255,198,30,.12)}
 .scensel{font-size:11px;font-weight:700;letter-spacing:.02em;border-radius:999px;
   padding:7px 12px;background:transparent;color:var(--chalk);border:1px solid var(--rule);
   max-width:238px;-webkit-appearance:none;appearance:none;cursor:pointer}
@@ -259,6 +270,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
     <div class="brand"><b>Roles, not positions</b><span> · Principles of Play</span></div>
     <nav class="rail" id="rail" aria-label="Steps"></nav>
     <div class="tally" id="tally" title="Questions answered right first time"></div>
+    <div class="streak" id="streak" hidden><span id="streakN"></span><span class="flame">🔥</span></div>
+    <button class="sndbtn" id="sndBtn" aria-pressed="false" aria-label="Sound is off" title="Sound is off">🔇</button>
     <select class="scensel" id="scenSel" aria-label="Choose what to run"></select>
   </header>
 
@@ -321,6 +334,43 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 "use strict";
 
 /* ============================================================
+   SOUND — synthesized, nothing loaded, off until the button
+   ============================================================ */
+var sndOn = false, AC = null;
+function ac(){
+  if (!AC){
+    var C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return null;
+    AC = new C();
+  }
+  if (AC.state === "suspended") AC.resume();
+  return AC;
+}
+function tone(f0, f1, t0, dur, type, vol){
+  var c = ac(); if (!c) return;
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = type || "sine";
+  var t = c.currentTime + (t0 || 0);
+  o.frequency.setValueAtTime(f0, t);
+  if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol || 0.18, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+var SND = {
+  tap:  function(){ tone(660, 0, 0, 0.05, "square", 0.05); },
+  ok:   function(){ tone(523, 0, 0, 0.09, "sine", 0.16); tone(784, 0, 0.09, 0.14, "sine", 0.16); },
+  okBig:function(){ [523,659,784,1047].forEach(function(f,i){ tone(f, 0, i*0.07, 0.16, "sine", 0.15); }); },
+  miss: function(){ tone(220, 165, 0, 0.22, "sine", 0.13); },
+  pick: function(){ tone(440, 0, 0, 0.07, "sine", 0.1); },
+  whistle: function(){ tone(2100, 2300, 0, 0.28, "square", 0.06); tone(2100, 2300, 0.33, 0.5, "square", 0.06); }
+};
+function play(name){ if (sndOn && SND[name]) try{ SND[name](); }catch(e){} }
+
+
+/* ============================================================
    THE CAST — attacking left to right, goal on the right
    ============================================================ */
 var SESS_P = {
@@ -372,8 +422,8 @@ var SESS_STEPS = [
   cast:["A1","A2","D1","D2"], ball:"A1",
   q:"Tap the first attacker.",
   ask:{ answer:"A1", tag:{A1:"1st ATT"},
-    ok:"First attacker | The player with the ball. His job is penetration — get it forward, toward goal.",
-    miss:{ A2:"Second attacker | He's supporting. The first attacker is always the one with the ball.",
+    ok:"First attacker | The player with the ball. Their job is penetration — get it forward, toward goal.",
+    miss:{ A2:"Second attacker | They're supporting. The first attacker is always the one with the ball.",
            D1:"Wrong team | That's a defender. Start from the ball.",
            D2:"Wrong team | That's a defender. Start from the ball." } },
   say:"Hand the tablet to someone in the front row. Let them tap it.",
@@ -387,9 +437,9 @@ var SESS_STEPS = [
   cast:["A1","A2","D1","D2"], ball:"A1", tags:{A1:"1st ATT"},
   q:"Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
-    ok:"First defender | Closest to the ball, applying pressure. His job is delay.",
-    miss:{ D2:"Second defender | He's covering behind. The first defender is the one pressuring the ball.",
-           A1:"Wrong team | He's the one you just identified.",
+    ok:"First defender | Closest to the ball, applying pressure. Their job is delay.",
+    miss:{ D2:"Second defender | They're covering behind. The first defender is the one pressuring the ball.",
+           A1:"Wrong team | They're the one you just identified.",
            A2:"Wrong team | That's an attacker." } },
   say:"Different coach this time. Pass it along.",
   why:["Two defenders on the field, not one — so this is a real choice, not a formality.",
@@ -400,12 +450,12 @@ var SESS_STEPS = [
 /* 3 */ {
   track:"FS", kind:"talk", time:60, label:"Win it or delay?", hi:["penetration","delay"],
   cast:["A1","A2","D1","D2"], ball:"A1", tags:{A1:"1st ATT", D1:"1st DEF"},
-  q:"The first defender: win it, or hold his ground?",
+  q:"The first defender: win it, or hold their ground?",
   choices:[
     {t:"Go and win it", tone:"poor", at:{A1:"A1_past"}, mark:{poor:["D1"]},
-     r:"Beaten | Sometimes he wins it. The rest of the time he's turned, and now there is nobody between the ball and goal."},
+     r:"Beaten | Sometimes they win it. The rest of the time they're turned, and now there is nobody between the ball and goal."},
     {t:"Delay", tone:"good", at:{D1:"D1_delay"}, mark:{good:["D1"]},
-     r:"Almost always this | Stay on your feet, angle him away from goal, slow it down until help arrives."}
+     r:"Almost always this | Stay on your feet, angle them away from goal, slow it down until help arrives."}
   ],
   say:"This one the app won't score — because it depends. That's the first thing to notice about the tool.",
   why:["Let two or three answer before you land it.",
@@ -421,8 +471,8 @@ var SESS_STEPS = [
   q:"Where should the support go?",
   a:"Tap a zone \u2014 you can try both.",
   zoneResult:{
-    A3_shadow:"No lane | He's close and he's available, and the first defender is standing on the passing line. Support isn't a distance.",
-    A3_angle :"Second attacker · support | Clear lane, and he's behind the ball so he can see the whole picture. Support is an angle."
+    A3_shadow:"No lane | They're close and they're available, and the first defender is standing on the passing line. Support isn't a distance.",
+    A3_angle :"Second attacker · support | Clear lane, and they're behind the ball so they can see the whole picture. Support is an angle."
   },
   zoneTag:{ A3_angle:{A3:"2nd ATT"} },
   zoneTone:{ A3_shadow:"poor", A3_angle:"good" },
@@ -441,13 +491,13 @@ var SESS_STEPS = [
   asks:[
     { q:"Who's the first attacker now?", answer:"A2", tag:{A2:"1st ATT"},
       ok:"First attacker | And the player who just passed it is now a second attacker.",
-      miss:{ A1:"Not any more | He had it a second ago. Now he's supporting.",
+      miss:{ A1:"Not any more | They had it a second ago. Now they're supporting.",
              A3:"Supporting | The first attacker is whoever has the ball right now.",
              D1:"Wrong team | Look at the yellow shirts.",
              D2:"Wrong team | Look at the yellow shirts." } },
     { q:"Who's the first defender now?", answer:"D2", tag:{D2:"1st DEF"},
-      ok:"First defender | He was the second defender four seconds ago. Nobody moved. Only the ball.",
-      miss:{ D1:"He was | The ball is past him. He's recovering now, not pressuring.",
+      ok:"First defender | They were the second defender four seconds ago. Nobody moved. Only the ball.",
+      miss:{ D1:"They were | The ball is past them. They're recovering now, not pressuring.",
              A1:"Wrong team | Look at the blue shirts.",
              A2:"Wrong team | Look at the blue shirts.",
              A3:"Wrong team | Look at the blue shirts." } }
@@ -467,7 +517,7 @@ var SESS_STEPS = [
   q:"Where does the beaten defender recover to?",
   a:"Tap a zone \u2014 you can try both.",
   zoneResult:{
-    D1_flat :"Flat | Level with his teammate. One pass between them beats both defenders at once. This is the most common thing you'll see on Saturday.",
+    D1_flat :"Flat | Level with their teammate. One pass between them beats both defenders at once. This is the most common thing you'll see on Saturday.",
     D1_cover:"Second defender · cover | Behind and inside. If the first defender gets beaten, someone is still there."
   },
   zoneTag:{ D1_cover:{D1:"2nd DEF"} },
@@ -507,7 +557,7 @@ var SESS_STEPS = [
   zoneTone:{ A4_narrow:"poor", A4_wide:"good" },
   say:"Width is the principle nobody believes until they see the gaps open up.",
   why:["The near-side wide player is the one most coaches remember to use. The <b>far-side</b> one goes unused for entire seasons.",
-       "Worth saying plainly: a wide player who never gets the ball is still doing his job, because he's holding a defender out there. Kids hate this. Tell them anyway."],
+       "Worth saying plainly: a wide player who never gets the ball is still doing their job, because they're holding a defender out there. Kids hate this. Tell them anyway."],
   next:"Next"
 },
 
@@ -516,21 +566,21 @@ var SESS_STEPS = [
   cast:["A1","A2","A3","A4","D1","D2","D3"], ball:"A2",
   at:{A3:"A3_angle", A4:"A4_wide", D2:"D2_press", D1:"D1_cover"},
   tags:{A2:"1st ATT", D2:"1st DEF", A4:"3rd ATT"},
-  q:"The wide attacker hasn't touched the ball. Now he runs.",
+  q:"The wide attacker hasn't touched the ball. Now they run.",
   action:{ t:"Play the run", q:"Who's responsible for that run?",
            at:{A4:"A4_run", D3:"D3_track"},
            tags:{A2:"1st ATT", D2:"1st DEF", A4:"MOBILITY"} },
   ask:{ answer:"D3", tag:{D3:"BALANCE"},
-    ok:"Third defender · balance | Not the ball, not the man pressing it — the space away from the ball. Ball-watch here and that run scores.",
-    miss:{ D2:"Occupied | He's pressuring the ball. Somebody else has to see the run.",
-           D1:"Covering | He's behind the first defender. Look further from the ball.",
+    ok:"Third defender · balance | Not the ball, not the player pressing it — the space away from the ball. Ball-watch here and that run scores.",
+    miss:{ D2:"Occupied | They're pressuring the ball. Somebody else has to see the run.",
+           D1:"Covering | They're behind the first defender. Look further from the ball.",
            A1:"Wrong team | Look at the blue shirts.",
            A2:"Wrong team | Look at the blue shirts.",
            A3:"Wrong team | Look at the blue shirts.",
-           A4:"That's the runner | Who's responsible for him?" } },
+           A4:"That's the runner | Who's responsible for them?" } },
   say:"Mobility on one side, balance on the other. Neither player is anywhere near the ball.",
   why:["<b>This is the pair that separates a coach who watches the ball from one who watches the game.</b> Both roles are defined entirely by what's happening away from it.",
-       "Practical translation for Saturday: your furthest defender from the ball should be talking loudest, because he's the only one who can see the whole picture.",
+       "Practical translation for Saturday: your furthest defender from the ball should be talking loudest, because they're the only one who can see the whole picture.",
        "The run ends <b>level with the last defender</b> on purpose. Show a runner beyond the back line and the first thing a sharp player says is “offside” — and you have lost the room."],
   next:"Next"
 },
@@ -542,14 +592,14 @@ var SESS_STEPS = [
   tags:{A2:"1st ATT", D2:"1st DEF"},
   q:"Three attackers, spread wide. What does the defence do?",
   choices:[
-    {t:"Each takes a man", tone:"poor", at:{D1:"D1_man", D3:"D3_man"}, mark:{poor:["D1","D3"]},
+    {t:"Each marks a player", tone:"poor", at:{D1:"D1_man", D3:"D3_man"}, mark:{poor:["D1","D3"]},
      r:"Now the field is as big as they want it | Three defenders stretched across sixty yards, and every gap between them is where the game gets played."},
     {t:"Squeeze together", tone:"good", at:{D1:"D1_squeeze", D3:"D3_squeeze"}, mark:{good:["D1","D3"]},
      r:"Compactness | Make them go around you rather than through you. The cost is real — you concede the far-side player, and that trade is the decision."}
   ],
   say:"Compactness is the answer to width, and it's an unpleasant answer — you're choosing what to give up.",
   why:["Every defending principle is a trade, and this is the clearest one. Coaches who never name the trade end up chasing everything and covering nothing.",
-       "<b>Someone will ask why the defender doesn\u2019t just go out wide.</b> He does \u2014 the nearest defender always presses the ball, wherever it is. The real question is what the other two do: tuck in, or follow him across. You can only afford to send a defender wide if the middle is still covered without him.",
+       "<b>Someone will ask why the defender doesn\u2019t just go out wide.</b> They do \u2014 the nearest defender always presses the ball, wherever it is. The real question is what the other two do: tuck in, or follow them across. You can only afford to send a defender wide if the middle is still covered without them.",
        "The practical version is one sentence: <b>the two lines stay close together, and the ball-far defender tucks in.</b> That's it."],
   next:"Next"
 },
@@ -565,9 +615,9 @@ var SESS_STEPS = [
     {t:"Ball over the top", tone:"fair", ball:"A4",
      r:"Creativity | Low percentage, high reward, and the only principle a coach can't install — you can only permit it. Kids who get shouted at for losing the ball stop attempting anything."},
     {t:"Pass back", tone:"good", ball:"A3", mark:{good:["A3"]},
-     r:"The one that actually happens | Not a retreat — he's using the angle his second attacker gave him. The ball goes back, the defence has to shift, and somebody else is now the first attacker."},
+     r:"The one that actually happens | Not a retreat — they're using the angle their second attacker gave them. The ball goes back, the defence has to shift, and somebody else is now the first attacker."},
     {t:"Keep it and wait", tone:"poor", mark:{poor:["A2"]},
-     r:"The weakest of the three | Hold the ball in front of a compact block and you invite the second defender to step out and double him."}
+     r:"The weakest of the three | Hold the ball in front of a compact block and you invite the second defender to step out and double them."}
   ],
   say:"And the mirror: control and restraint. The attacking team's job is to surprise you. The defending team's job is to be boring.",
   why:["<b>Creativity ↔ control is the pair most likely to get skipped, and the one that most changes how a coach behaves on the sideline.</b>",
@@ -645,10 +695,10 @@ var WIDE_STEPS = [
   q:"The ball is out wide. Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
     ok:"First defender | Nearest the ball. That never changes, wherever the ball is.",
-    miss:{ D2:"Not him | Someone is closer to the ball than he is.",
-           D3:"Not him | Look for whoever is nearest the ball." } },
+    miss:{ D2:"Not them | Someone is closer to the ball than they are.",
+           D3:"Not them | Look for whoever is nearest the ball." } },
   say:"The nearest defender always presses. That part isn't a choice.",
-  why:["Start here so nobody argues about whether a defender should go wide. He does. The argument is about the other two.",
+  why:["Start here so nobody argues about whether a defender should go wide. They do. The argument is about the other two.",
        "This is the scenario a player asked for, and it teaches compactness better than a central picture does."],
   next:"Next"
 },
@@ -657,16 +707,16 @@ var WIDE_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{D1:"1st DEF"},
   q:"What do the other two defenders do?",
   choices:[
-    {t:"Follow him across", tone:"poor",
+    {t:"Follow them across", tone:"poor",
      at:{D2:"D2_follow", D3:"D3_follow"}, mark:{poor:["D2","D3"]},
      r:"Now look at the middle | Three defenders on one touchline. One pass inside and there is nobody home. This is the most common mistake you will see on a Saturday."},
-    {t:"Tuck in behind him", tone:"good",
+    {t:"Tuck in behind them", tone:"good",
      at:{D2:"D2_tuck", D3:"D3_tuck"}, mark:{good:["D2","D3"]},
      r:"Compactness | Shift, don't chase. The wide player can go forward or backward and that is about it \u2014 the touchline is defending one whole side for you."}
   ],
   say:"Shift, don't chase. Say it exactly like that and they'll remember it.",
   why:["<b>The trap is that following looks like effort.</b> Chasing the ball feels like defending, and it opens the only part of the field that actually matters.",
-       "You can only afford to send one defender wide if the middle is still covered without him. That is the whole trade in one sentence."],
+       "You can only afford to send one defender wide if the middle is still covered without them. That is the whole trade in one sentence."],
   next:"Next"
 },
 {
@@ -677,9 +727,9 @@ var WIDE_STEPS = [
   action:{ t:"Play it inside", ball:"A2", q:"Who's the first defender now?",
            tags:{} },
   ask:{ answer:"D2", tag:{D2:"1st DEF"},
-    ok:"First defender | He was tucked in, so he was already there. That is what compactness buys you \u2014 the next presser is in position before the ball arrives.",
-    miss:{ D1:"He was | The ball has gone past him. He's recovering now.",
-           D3:"Not him | Someone is closer to the ball." } },
+    ok:"First defender | They were tucked in, so they were already there. That is what compactness buys you \u2014 the next presser is in position before the ball arrives.",
+    miss:{ D1:"They were | The ball has gone past them. They're recovering now.",
+           D3:"Not them | Someone is closer to the ball." } },
   say:"Watch what compact buys you: the next defender is already there.",
   why:["This is the payoff for the previous step. Run it back with the other choice if the room needs convincing \u2014 with three defenders on the touchline, this pass has nobody near it."],
   next:"Next"
@@ -689,10 +739,10 @@ var WIDE_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A2",
   at:{D2:"D2_tuck", D3:"D3_tuck"}, tags:{D2:"1st DEF"},
   q:"Good defences force the ball wide on purpose.",
-  a:"Out there, there is less dangerous space, nobody behind him, and the touchline does half your work. Wide isn't a crisis \u2014 it's a small win, as long as nobody chases.",
+  a:"Out there, there is less dangerous space, nobody behind them, and the touchline does half your work. Wide isn't a crisis \u2014 it's a small win, as long as nobody chases.",
   say:"Ask them where they'd rather the other team had the ball: the wing, or the middle.",
   why:["Most young defenders treat a wide attacker as an emergency. Reframing it as a small win is the single most useful thing in this scenario.",
-       "It also explains why coaches shout \u201cshow him outside\u201d \u2014 you are herding the ball to the safest place on the field."],
+       "It also explains why coaches shout \u201cshow them outside\u201d \u2014 you are herding the ball to the safest place on the field."],
   next:"Start over"
 }
 ];
@@ -714,8 +764,8 @@ var TURN_STEPS = [
   q:"Yellow has the ball. Tap the first attacker.",
   ask:{ answer:"A1", tag:{A1:"1st ATT"},
     ok:"First attacker | The one with the ball, as always.",
-    miss:{ A2:"Not him | He hasn't got the ball.",
-           A3:"Not him | He hasn't got the ball." } },
+    miss:{ A2:"Not them | They haven't got the ball.",
+           A3:"Not them | They haven't got the ball." } },
   say:"Quick. This is just to set the board.",
   why:["Fast setup. The whole scenario is one moment, and it hasn't happened yet."],
   next:"Next"
@@ -726,7 +776,7 @@ var TURN_STEPS = [
   q:"Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
     ok:"First defender | Nearest the ball, pressing.",
-    miss:{ D2:"Not him | Someone is closer.", D3:"Not him | Someone is closer." } },
+    miss:{ D2:"Not them | Someone is closer.", D3:"Not them | Someone is closer." } },
   say:"Still setting the board. Move.",
   why:["Two taps, twenty seconds. Everything in this scenario is about what happens next."],
   next:"Next"
@@ -740,19 +790,19 @@ var TURN_STEPS = [
            q:"Who's the first attacker now?" },
   asks:[
     { q:"Who's the first attacker now?", answer:"D1", tag:{D1:"1st ATT"},
-      ok:"First attacker | The same player. He never moved. The ball changed teams, so his job did.",
-      miss:{ D2:"Not him | Who has the ball right now?",
-             D3:"Not him | Who has the ball right now?",
-             A1:"He was | Four seconds ago. Look at who has it now." } },
+      ok:"First attacker | The same player. They never moved. The ball changed teams, so their job did.",
+      miss:{ D2:"Not them | Who has the ball right now?",
+             D3:"Not them | Who has the ball right now?",
+             A1:"They were | Four seconds ago. Look at who has it now." } },
     { q:"And who's the first defender?", answer:"A1", tag:{A1:"1st DEF"},
-      ok:"First defender | The player who just lost it. He's nearest the ball, so he's the one who has to press.",
-      miss:{ A2:"Not him | The nearest yellow shirt to the ball.",
-             A3:"Not him | The nearest yellow shirt to the ball.",
-             D1:"He has it | He can't defend it." } }
+      ok:"First defender | The player who just lost it. They're nearest the ball, so they're the one who has to press.",
+      miss:{ A2:"Not them | The nearest yellow shirt to the ball.",
+             A3:"Not them | The nearest yellow shirt to the ball.",
+             D1:"They have it | They can't defend it." } }
   ],
   say:"Nobody moved. Every single player on this field just changed job.",
   why:["<b>This is the whole idea of the game in four seconds.</b> Shirt colour didn't change. Position didn't change. Role changed for all six.",
-       "The line that lands: your striker is now your first defender, and he is the only one who can do that job right now.",
+       "The line that lands: your striker is now your first defender, and they are the only one who can do that job right now.",
        "Teams practise attacking and they practise defending. Almost nobody practises the half-second in between, which is when most goals are conceded."],
   next:"Next"
 },
@@ -787,8 +837,8 @@ var CTR_STEPS = [
   cast:["A1","A2","A3","D1","D2"], ball:"A1",
   q:"They've broken on you. Three against two. Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
-    ok:"First defender | Nearest the ball. Everything now depends on what he does next.",
-    miss:{ D2:"Not yet | He's the one further back. Look at who's nearest the ball." } },
+    ok:"First defender | Nearest the ball. Everything now depends on what they do next.",
+    miss:{ D2:"Not yet | They're the one further back. Look at who's nearest the ball." } },
   say:"Count them out loud with the room. Three attackers, two defenders.",
   why:["Being outnumbered is the situation where new coaches give the worst instruction, so it's worth its own scenario."],
   next:"Next"
@@ -800,24 +850,24 @@ var CTR_STEPS = [
   choices:[
     {t:"Go and win it", tone:"poor",
      at:{A1:"A1_gone"}, mark:{poor:["D1"]},
-     r:"Beaten | He commits, the ball goes past him, and now it's three against one with nobody between the ball and goal. He had one job and it wasn't this."},
+     r:"Beaten | They commit, the ball goes past them, and now it's three against one with nobody between the ball and goal. They had one job and it wasn't this."},
     {t:"Drop and delay", tone:"good",
      at:{D1:"D1_drop"}, mark:{good:["D1"]},
-     r:"Delay | He can't win this on his own, so he doesn't try. Back off, stay on his feet, make them slow down. Every second he buys is another teammate getting back."}
+     r:"Delay | They can't win this on their own, so they don't try. Back off, stay on their feet, make them slow down. Every second they buy is another teammate getting back."}
   ],
   say:"When you're outnumbered, the first defender's job isn't to win it. It's to not lose it yet.",
   why:["<b>Every instinct says go and win the ball.</b> On a counter that instinct loses games, and it's the single most valuable thing to correct.",
-       "The coaching phrase is \u201cdelay until the numbers even up.\u201d Say it, then ask what happens if he wins it. The answer is that sometimes he does \u2014 and the times he doesn't, you concede."],
+       "The coaching phrase is \u201cdelay until the numbers even up.\u201d Say it, then ask what happens if they win it. The answer is that sometimes they do \u2014 and the times they don't, you concede."],
   next:"Next"
 },
 {
-  kind:"tap", time:60, label:"Behind him", hi:["delay","cover"],
+  kind:"tap", time:60, label:"Behind them", hi:["delay","cover"],
   cast:["A1","A2","A3","D1","D2"], ball:"A1",
   at:{D1:"D1_drop"}, tags:{D1:"1st DEF"},
   q:"Who's the second defender?",
   ask:{ answer:"D2", tag:{D2:"2nd DEF"},
-    ok:"Second defender \u00b7 cover | Behind and inside. The moment the first defender is beaten, he is the last line \u2014 so he cannot be beaten by the same pass.",
-    miss:{ D1:"He's the first defender | The one pressing the ball. Who's behind him?" } },
+    ok:"Second defender \u00b7 cover | Behind and inside. The moment the first defender is beaten, they are the last line \u2014 so they cannot be beaten by the same pass.",
+    miss:{ D1:"They're the first defender | The one pressing the ball. Who's behind them?" } },
   say:"Two defenders, and they must never be beaten by the same pass.",
   why:["The reason cover matters more when you're outnumbered: there is no third chance.",
        "Watch for a coach saying both should press. Ask them what happens on the next pass."],
@@ -854,9 +904,9 @@ var BUILD_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
   q:"Your keeper has it and they're pressing. Tap the first attacker.",
   ask:{ answer:"A1", tag:{A1:"1st ATT"},
-    ok:"First attacker | Yes \u2014 the keeper. Whoever has the ball is the first attacker, and that includes him.",
-    miss:{ A2:"Not him | Who has the ball?",
-           A3:"Not him | Who has the ball?" } },
+    ok:"First attacker | Yes \u2014 the keeper. Whoever has the ball is the first attacker, and that includes them.",
+    miss:{ A2:"Not them | Who has the ball?",
+           A3:"Not them | Who has the ball?" } },
   say:"Let them hesitate on this one. The pause is the lesson.",
   why:["<b>Half the room will not want to tap the keeper.</b> That hesitation is exactly the positional thinking this whole tool exists to break.",
        "Once they accept the keeper as the first attacker, everything about playing out of the back gets easier to explain."],
@@ -869,10 +919,10 @@ var BUILD_STEPS = [
   choices:[
     {t:"Close to the keeper", tone:"poor",
      at:{A2:"A2_tight"}, mark:{poor:["A2"]},
-     r:"One press kills both | From where that striker is standing he can cover the keeper and the centre back at the same time. Two players, one defender, no angle."},
+     r:"One press kills both | From where that striker is standing they can cover the keeper and the centre back at the same time. Two players, one defender, no angle."},
     {t:"Wide and low", tone:"good",
      at:{A2:"A2_split"}, mark:{good:["A2"]},
-     r:"Width | Now one striker cannot press both. Whichever one he goes to, the other one is free. That's the whole trick of playing out."}
+     r:"Width | Now one striker cannot press both. Whichever one they go to, the other one is free. That's the whole trick of playing out."}
   ],
   say:"Width isn't only for the attacking third. It starts in your own box.",
   why:["Most coaches teach width as a final-third idea. It matters more in your own third, because there the punishment for getting it wrong is immediate.",
@@ -885,10 +935,10 @@ var BUILD_STEPS = [
   at:{A2:"A2_split"}, tags:{A1:"1st ATT", A2:"WIDTH"},
   q:"Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
-    ok:"First defender | Nearest the ball, and now he has a decision he didn't have before \u2014 which one of the two does he go to?",
-    miss:{ D2:"Not him | Someone is closer to the ball.",
-           D3:"Not him | He's marking the midfielder, further up." } },
-  say:"Notice his problem. He can only be in one place.",
+    ok:"First defender | Nearest the ball, and now they have a decision they didn't have before \u2014 which one of the two do they go to?",
+    miss:{ D2:"Not them | Someone is closer to the ball.",
+           D3:"Not them | They're marking the midfielder, further up." } },
+  say:"Notice their problem. They can only be in one place.",
   why:["Naming the presser's dilemma out loud is what makes width feel useful rather than abstract."],
   next:"Next"
 },
@@ -905,11 +955,22 @@ var BUILD_STEPS = [
      r:"Not wrong, just not this | Sometimes long is the right call \u2014 bad pitch, high press, tired legs. But you'll give it straight back more often than not, and you skipped everything you just built."},
     {t:"Keep it and wait", tone:"poor",
      mark:{poor:["A1"]},
-     r:"The one that gets punished | A keeper holding the ball with a striker closing him down is how young teams concede the worst goals of the season."}
+     r:"The one that gets punished | A keeper holding the ball with a striker closing them down is how young teams concede the worst goals of the season."}
   ],
   say:"Long isn't banned. It's just not free.",
   why:["<b>Don't let this become dogma.</b> Playing out is a tool, not a religion, and a coach who never allows long is as wrong as one who never allows short.",
        "The honest framing: short when the angle exists, long when it doesn't, and never dawdle."],
+  next:"Next"
+},
+{
+  kind:"info", time:35, label:"Every player attacks", hi:["penetration","support","width"],
+  cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
+  at:{A2:"A2_split"}, tags:{A1:"1st ATT", A2:"WIDTH"},
+  q:"The keeper is a player.",
+  a:"The moment your team has the ball, all eleven are attackers — including the one in gloves. Width and support start in your own box, not the final third.",
+  say:"If they only remember one thing: whoever has the ball is the first attacker. Even the keeper.",
+  why:["Transfer to the field: in possession games, the keeper joins as an outfield player. Teams that practise this stop panicking when the press arrives.",
+       "This step exists so the scenario ends on the idea, not mid-argument."],
   next:"Start over"
 }
 ];
@@ -931,25 +992,25 @@ var OVER_STEPS = [
   cast:["A1","A2","A3","D1"], ball:"A1",
   q:"Three attackers, one defender. Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
-    ok:"First defender | And the only defender. He is also, technically, the second and third defender.",
+    ok:"First defender | And the only defender. They are also, technically, the second and third defender.",
     miss:{} },
   say:"There's only one, so this is quick. The next question is the real one.",
   why:["A deliberately trivial tap to get the board set. The value in this scenario is all in the two discussions."],
   next:"Next"
 },
 {
-  kind:"talk", time:70, label:"What can he do?", hi:["delay","control"],
+  kind:"talk", time:70, label:"What can they do?", hi:["delay","control"],
   cast:["A1","A2","A3","D1"], ball:"A1", tags:{D1:"1st DEF"},
   q:"What can the lone defender actually do?",
   choices:[
     {t:"Go and win it", tone:"poor",
      at:{D1:"D1_commit"}, mark:{poor:["D1"]},
-     r:"Gone | He commits, the ball goes round him, and now it is three against nobody. Against these numbers, going to ground is a gift."},
+     r:"Gone | They commit, the ball goes round them, and now it is three against nobody. Against these numbers, going to ground is a gift."},
     {t:"Delay and show one side", tone:"good",
      at:{D1:"D1_show"}, mark:{good:["D1"]},
-     r:"Delay and control | He cannot stop all three. He can make them take the slowest option, push them away from the middle, and buy the seconds his teammates need."}
+     r:"Delay and control | They cannot stop all three. They can make them take the slowest option, push them away from the middle, and buy the seconds their teammates need."}
   ],
-  say:"He can't win. He can make it take longer, and that's a real job.",
+  say:"They can't win. They can make it take longer, and that's a real job.",
   why:["This is <b>control and restraint</b> in its purest form. There is nothing to gamble on and everything to lose by gambling.",
        "Worth telling defenders plainly: surviving is a result. Nobody claps for it, and it wins games."],
   next:"Next"
@@ -960,8 +1021,8 @@ var OVER_STEPS = [
   at:{D1:"D1_show"}, tags:{D1:"1st DEF", A1:"1st ATT"},
   q:"And the first attacker's options?",
   choices:[
-    {t:"Dribble at him", tone:"fair",
-     r:"Creativity | Nothing wrong with it. He has two teammates free and he's chosen the hardest option \u2014 which is sometimes exactly right, and which you must let him try."},
+    {t:"Dribble at them", tone:"fair",
+     r:"Creativity | Nothing wrong with it. They have two teammates free and they're chosen the hardest option \u2014 which is sometimes exactly right, and which you must let them try."},
     {t:"Slide it wide", tone:"good",
      mark:{good:["A2","A3"]},
      r:"Penetration through support | The defender has committed to one side. The free player on the other side is the fastest way to goal, and this is what having numbers is for."},
@@ -1005,7 +1066,7 @@ var THIRD_STEPS = [
   q:"Tap the first attacker.",
   ask:{ answer:"A1", tag:{A1:"1st ATT"},
     ok:"First attacker | Deep midfielder with the ball and a striker to aim at.",
-    miss:{ A2:"Not yet | He hasn't got it.", A3:"Not him | Watch him though." } },
+    miss:{ A2:"Not yet | They haven't got it.", A3:"Not them | Watch them though." } },
   say:"Quick one. Watch the wide player while you do it.",
   why:["Setting the board. The whole scenario is about the player nobody is looking at."],
   next:"Next"
@@ -1017,9 +1078,9 @@ var THIRD_STEPS = [
   action:{ t:"Pass into the striker", ball:"A2", tags:{},
            q:"Who's the first defender now?" },
   ask:{ answer:"D2", tag:{D2:"1st DEF"},
-    ok:"First defender | And the striker has his back to goal with a defender leaning on him. On his own, this pass has gone nowhere.",
-    miss:{ D1:"He was | The ball has gone past him.",
-           D3:"Not him | Someone is much closer to the ball." } },
+    ok:"First defender | And the striker has their back to goal with a defender leaning on them. On their own, this pass has gone nowhere.",
+    miss:{ D1:"They were | The ball has gone past them.",
+           D3:"Not them | Someone is much closer to the ball." } },
   say:"Notice the striker is stuck. That's the problem the next step solves.",
   why:["Deliberately show the pass failing to achieve anything. A ball into a marked striker is not progress by itself.",
        "This is the setup that makes the third-man idea land."],
@@ -1031,13 +1092,13 @@ var THIRD_STEPS = [
   tags:{A2:"1st ATT", D2:"1st DEF"},
   q:"The wide attacker. Stand still, or go?",
   choices:[
-    {t:"Hold his position", tone:"poor", at:{A3:"A3_hold"}, mark:{poor:["A3"]},
-     r:"Nothing has changed | The striker still has his back to goal with a defender on him, and now there's nowhere to go. Standing still is a decision, and it's usually the wrong one."},
+    {t:"Hold their position", tone:"poor", at:{A3:"A3_hold"}, mark:{poor:["A3"]},
+     r:"Nothing has changed | The striker still has their back to goal with a defender on them, and now there's nowhere to go. Standing still is a decision, and it's usually the wrong one."},
     {t:"Run in behind", tone:"good", at:{A3:"A3_run"}, mark:{good:["A3"]},
-     r:"Mobility | He wasn't part of that pass and nobody is marking him tightly, which is exactly why the run works. He didn't beat anybody \u2014 he just went."}
+     r:"Mobility | They weren't part of that pass and nobody is marking them tightly, which is exactly why the run works. They didn't beat anybody \u2014 they just went."}
   ],
-  say:"He had nothing to do with that pass. That's what makes him dangerous.",
-  why:["<b>This is the clearest picture of mobility anywhere in this tool.</b> He never touches the ball until the last moment and he does all the damage.",
+  say:"They had nothing to do with that pass. That's what makes them dangerous.",
+  why:["<b>This is the clearest picture of mobility anywhere in this tool.</b> They never touch the ball until the last moment and they do all the damage.",
        "The reason it's hard to coach: the run has to start before the striker is ready, which feels wrong to a young player. Tell them the run is what makes the pass possible, not the other way round."],
   next:"Next"
 },
@@ -1049,10 +1110,10 @@ var THIRD_STEPS = [
   action:{ t:"Play the third-man pass", ball:"A3", tags:{A3:"1st ATT"},
            q:"Who's the first defender now?" },
   ask:{ answer:"D3", tag:{D3:"1st DEF"},
-    ok:"First defender | And he's arriving late, because until two seconds ago there was nothing to defend.",
-    miss:{ D2:"He was | The ball has gone past him.",
-           D1:"Not him | He's forty yards from the ball." } },
-  say:"Three players. Count the passes: one, two, and he's in.",
+    ok:"First defender | And they're arriving late, because until two seconds ago there was nothing to defend.",
+    miss:{ D2:"They were | The ball has gone past them.",
+           D1:"Not them | They're forty yards from the ball." } },
+  say:"Three players. Count the passes: one, two, and they're in.",
   why:["The defending lesson sits underneath: the third defender was ball-watching, which is a failure of balance.",
        "Worth replaying with the hold option so the room sees both endings."],
   next:"Next"
@@ -1087,9 +1148,9 @@ var SW_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
   q:"Everybody has shifted to the ball. Tap the most dangerous attacker on the field.",
   ask:{ answer:"A3", tag:{A3:"WIDTH"},
-    ok:"Him | He has done nothing for thirty seconds and there isn't a defender within forty yards of him. That is what staying wide buys.",
-    miss:{ A1:"He has the ball | And three defenders around him. Look for the one nobody is near.",
-           A2:"Not quite | He's got company. Look further away from the ball." } },
+    ok:"Them | They have done nothing for thirty seconds and there isn't a defender within forty yards of them. That is what staying wide buys.",
+    miss:{ A1:"They have the ball | And three defenders around them. Look for the one nobody is near.",
+           A2:"Not quite | They've got company. Look further away from the ball." } },
   say:"Let them look for a second before anyone taps.",
   why:["<b>Most rooms tap the player with the ball.</b> That instinct is exactly the one this scenario exists to break.",
        "The kid who stays wide and gets nothing for a whole half is the kid who wins you the game in the sixty-fifth minute. Tell them that out loud."],
@@ -1098,12 +1159,12 @@ var SW_STEPS = [
 {
   kind:"talk", time:75, label:"How does it get there?", hi:["width","penetration"],
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{A3:"WIDTH"},
-  q:"So how does the ball reach him?",
+  q:"So how does the ball reach them?",
   choices:[
     {t:"Dribble across", tone:"poor", at:{A1:"A1_carry"}, mark:{poor:["A1"]},
-     r:"Straight into the crowd | Three defenders between him and the far side, and he's carrying the ball at exactly the speed they can shuffle across."},
+     r:"Straight into the crowd | Three defenders between them and the far side, and they're carrying the ball at exactly the speed they can shuffle across."},
     {t:"Switch it first time", tone:"good", ball:"A3", mark:{good:["A3"]},
-     r:"Width pays | One pass moves the whole defence, and a pass travels faster than three defenders can run. By the time they arrive he's already going."}
+     r:"Width pays | One pass moves the whole defence, and a pass travels faster than three defenders can run. By the time they arrive they're already going."}
   ],
   say:"A pass beats a dribble across the field every single time.",
   why:["The measurable version for players: the ball moves faster than any of you. If the ball has to travel a long way, pass it. If it has to travel a short way, carry it.",
@@ -1115,10 +1176,10 @@ var SW_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A3", tags:{A3:"1st ATT"},
   q:"The wide attacker has it. Who's the first defender now?",
   ask:{ answer:"D3", tag:{D3:"1st DEF"},
-    ok:"First defender | Technically. He's a long run from the ball, which means for the next two seconds nobody is actually defending.",
-    miss:{ D1:"Further still | He's on the wrong side of the field entirely.",
-           D2:"Further still | He shifted with everyone else and now he's nowhere." } },
-  say:"Ask how long it takes him to get there. That gap is the whole point.",
+    ok:"First defender | Technically. It's a long run from the ball, which means for the next two seconds nobody is actually defending.",
+    miss:{ D1:"Further still | They're on the wrong side of the field entirely.",
+           D2:"Further still | They shifted with everyone else and now they're nowhere." } },
+  say:"Ask how long it takes them to get there. That gap is the whole point.",
   why:["<b>This is a failure of balance,</b> and it's worth naming as such. Somebody on that back line should have stayed honest to the far side.",
        "Run <b>The wide ball</b> straight after this one. Same idea from the defending end, and the pair together is better than either alone."],
   next:"Next"
@@ -1128,7 +1189,7 @@ var SW_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A3",
   tags:{A3:"1st ATT", D3:"1st DEF"},
   q:"Width doesn't score. It buys the second when nobody is there.",
-  a:"The far-side player didn't beat anyone and didn't do anything clever. He stood still in the right place while everybody else came to the ball.",
+  a:"The far-side player didn't beat anyone and didn't do anything clever. They stood still in the right place while everybody else came to the ball.",
   say:"Two seconds of nobody near you is more than most players get all game.",
   why:["Transfer to the field: in small-sided games, award a bonus for any goal that follows a switch. It changes how they look up within one session."],
   next:"Start over"
@@ -1154,10 +1215,10 @@ var CR_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
   q:"A cross is coming. Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
-    ok:"First defender | Nearest the ball, and his job is to make the cross a bad one \u2014 not to win the ball.",
-    miss:{ D2:"Not him | He's in the middle. Start from the ball.",
-           D3:"Not him | Start from the ball." } },
-  say:"His job isn't to block it. It's to make it a worse cross.",
+    ok:"First defender | Nearest the ball, and their job is to make the cross a bad one \u2014 not to win the ball.",
+    miss:{ D2:"Not them | They're in the middle. Start from the ball.",
+           D3:"Not them | Start from the ball." } },
+  say:"Their job isn't to block it. It's to make it a worse cross.",
   why:["Young defenders lunge at crossers and get skinned. The instruction is: get close enough to matter, stay on your feet, force it early or force it high."],
   next:"Next"
 },
@@ -1166,9 +1227,9 @@ var CR_STEPS = [
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A1", tags:{D1:"1st DEF"},
   q:"Who's the second defender?",
   ask:{ answer:"D2", tag:{D2:"2nd DEF"},
-    ok:"Second defender | Goal-side of the striker, close enough to touch him. This is the one job nobody argues about.",
-    miss:{ D3:"Not him | Someone is tighter to the danger.",
-           D1:"He's the first defender | Look at who's guarding the man in the middle." } },
+    ok:"Second defender | Goal-side of the striker, close enough to touch them. This is the one job nobody argues about.",
+    miss:{ D3:"Not them | Someone is tighter to the danger.",
+           D1:"They're the first defender | Look at who's guarding the player in the middle." } },
   say:"Everyone gets this one right. The next question is the one they get wrong.",
   why:["Deliberately easy, so the third defender's question lands with more weight."],
   next:"Next"
@@ -1177,16 +1238,16 @@ var CR_STEPS = [
   kind:"talk", time:85, label:"The third one", hi:["balance","cover"],
   cast:["A1","A2","A3","D1","D2","D3"], ball:"A1",
   tags:{D1:"1st DEF", D2:"2nd DEF"},
-  q:"And the third defender. Where does he go?",
+  q:"And the third defender. Where do they go?",
   choices:[
     {t:"Help press the crosser", tone:"poor", at:{D3:"D3_out"}, mark:{poor:["D3"]},
-     r:"Two on the ball, nobody on the runner | The crosser was already being dealt with. Now the player arriving late has the entire penalty area to himself, and he's the one who scores."},
+     r:"Two on the ball, nobody on the runner | The crosser was already being dealt with. Now the player arriving late has the entire penalty area to themselves, and they're the one who scores."},
     {t:"Watch the space and the late runner", tone:"good", at:{D3:"D3_balance"}, mark:{good:["D3"]},
-     r:"Balance | His job is the space and the man nobody else can see. Not the ball, not the striker \u2014 the danger that hasn't arrived yet."}
+     r:"Balance | Their job is the space and the player nobody else can see. Not the ball, not the striker \u2014 the danger that hasn't arrived yet."}
   ],
   say:"Crosses are not won by the players watching the ball.",
   why:["<b>The late runner is how most crosses are scored at every level.</b> Two defenders ball-watching and one arriving unmarked.",
-       "Practical instruction: the furthest defender from the ball turns his head away from it. If he's watching the flight, he's already beaten.",
+       "Practical instruction: the furthest defender from the ball turns their head away from it. If they're watching the flight, they're already beaten.",
        "This is the clearest picture of balance in the whole tool \u2014 the job is defined entirely by what's happening away from the ball."],
   next:"Next"
 },
@@ -1220,8 +1281,8 @@ var OV_STEPS = [
   cast:["A1","A2","A3","D1","D2"], ball:"A1",
   q:"Wide player on the ball. Who's the first defender?",
   ask:{ answer:"D1", tag:{D1:"1st DEF"},
-    ok:"First defender | One against one, and right now he only has one thing to think about.",
-    miss:{ D2:"Not him | He's inside, dealing with the striker." } },
+    ok:"First defender | One against one, and right now they only have one thing to think about.",
+    miss:{ D2:"Not them | They're inside, dealing with the striker." } },
   say:"Note how comfortable that defender is. One problem, one solution.",
   why:["Establishing the 1v1 first is what makes the overlap feel like a gift when it arrives."],
   next:"Next"
@@ -1229,14 +1290,14 @@ var OV_STEPS = [
 {
   kind:"talk", time:80, label:"Overlap or hold?", hi:["mobility","width"],
   cast:["A1","A2","A3","D1","D2"], ball:"A1", tags:{D1:"1st DEF"},
-  q:"The attacking full back behind him. Does he go?",
+  q:"The attacking full back behind them. Do they go?",
   choices:[
-    {t:"Hold his position", tone:"poor", at:{A2:"A2_hold"}, mark:{poor:["A2"]},
-     r:"One against one, forever | The defender has one player to watch, so he can stand off, stay patient and wait. Nothing has been asked of him."},
+    {t:"Hold their position", tone:"poor", at:{A2:"A2_hold"}, mark:{poor:["A2"]},
+     r:"One against one, forever | The defender has one player to watch, so they can stand off, stay patient and wait. Nothing has been asked of them."},
     {t:"Overlap on the outside", tone:"good", at:{A2:"A2_overlap"}, mark:{good:["A2"]},
-     r:"Mobility into width | Now the defender has two problems and can only solve one. Nobody beat him. Somebody just ran past him."}
+     r:"Mobility into width | Now the defender has two problems and can only solve one. Nobody beat them. Somebody just ran past them."}
   ],
-  say:"He didn't create that space by being good. He created it by running.",
+  say:"They didn't create that space by being good. They created it by running.",
   why:["<b>This is the cheapest goal-creating action in soccer</b> and the one young players do least, because it usually ends with them not getting the ball.",
        "Tell them plainly: most overlaps are decoys, and a decoy that drags a defender has done its job. If you only run when you expect the pass, you'll never make the run that works."],
   next:"Next"
@@ -1245,15 +1306,15 @@ var OV_STEPS = [
   kind:"tap", time:65, label:"Two on one", hi:["mobility","penetration","support"],
   cast:["A1","A2","A3","D1","D2"], ball:"A1",
   at:{A2:"A2_overlap"}, tags:{D1:"1st DEF", A2:"MOBILITY"},
-  q:"He's gone outside. Play it.",
+  q:"They've gone outside. Play it.",
   action:{ t:"Play the overlap", ball:"A2", tags:{},
            q:"Who's the first attacker now?" },
   ask:{ answer:"A2", tag:{A2:"1st ATT"},
-    ok:"First attacker | And he's outside the defender with the whole byline in front of him. A two against one, created by one run.",
-    miss:{ A1:"He was | He gave it and stayed. Look at who's got it now.",
-           A3:"Not him | He's waiting in the middle for what comes next." } },
+    ok:"First attacker | And they're outside the defender with the whole byline in front of them. A two against one, created by one run.",
+    miss:{ A1:"They were | They gave it and stayed. Look at who's got it now.",
+           A3:"Not them | They're waiting in the middle for what comes next." } },
   say:"Two against one, and neither of them beat anybody.",
-  why:["Worth pointing out the defender's dilemma out loud: the moment he steps to the overlapping player, the inside is open, and the moment he stays inside, the outside is open. There is no correct answer for him. That's what an overload means."],
+  why:["Worth pointing out the defender's dilemma out loud: the moment they step to the overlapping player, the inside is open, and the moment they stay inside, the outside is open. There is no correct answer for them. That's what an overload means."],
   next:"Next"
 },
 {
@@ -1263,7 +1324,7 @@ var OV_STEPS = [
   q:"A two against one, out of nothing. One player ran.",
   a:"No skill, no trick, no beating anybody. A defender who was completely comfortable ten seconds ago now cannot be right.",
   say:"That's the whole move. One player ran.",
-  why:["Transfer to the field: in any wide game, a goal counts double if an overlapping player was involved \u2014 whether or not he touched the ball."],
+  why:["Transfer to the field: in any wide game, a goal counts double if an overlapping player was involved \u2014 whether or not they touched the ball."],
   next:"Start over"
 }
 ];
@@ -1284,13 +1345,13 @@ var ISO_STEPS = [
   q:"Nothing else on the field. What does the defender do?",
   choices:[
     {t:"Go and win it", tone:"fair", at:{D1:"D1_commit"}, mark:{poor:["D1"]},
-     r:"Sometimes | He isn't outnumbered here, so it's not reckless. But he's got no cover behind him, and if he goes to ground and misses there is nothing left."},
-    {t:"Stay on his feet, show him one way", tone:"good", at:{D1:"D1_show"}, mark:{good:["D1"]},
-     r:"Control | Stay big, don't commit, force him onto his weaker side and make him beat you twice. Most attackers run out of ideas before they run out of tricks."}
+     r:"Sometimes | They aren't outnumbered here, so it's not reckless. But they've got no cover behind them, and if they go to ground and misses there is nothing left."},
+    {t:"Stay on their feet, show them one way", tone:"good", at:{D1:"D1_show"}, mark:{good:["D1"]},
+     r:"Control | Stay big, don't commit, force them onto their weaker side and make them beat you twice. Most attackers run out of ideas before they run out of tricks."}
   ],
   say:"No cover, no help, nothing to hide behind. This is control in its purest form.",
   why:["Stripping the field to two players is the point \u2014 there is no other principle available, so neither side can hide behind shape.",
-       "The instruction that works with young defenders: <b>make him beat you twice.</b> Slow him, show him one side, and make the second touch as hard as the first."],
+       "The instruction that works with young defenders: <b>make them beat you twice.</b> Slow them, show them one side, and make the second touch as hard as the first."],
   next:"Next"
 },
 {
@@ -1298,10 +1359,10 @@ var ISO_STEPS = [
   cast:["A1","D1"], ball:"A1", at:{D1:"D1_show"}, tags:{D1:"1st DEF"},
   q:"And the attacker?",
   choices:[
-    {t:"Take him on", tone:"good", mark:{good:["A1"]},
-     r:"Creativity | This is the one place on the field where losing the ball costs you almost nothing and beating him costs the defence everything. Let them try it, every time."},
+    {t:"Take them on", tone:"good", mark:{good:["A1"]},
+     r:"Creativity | This is the one place on the field where losing the ball costs you almost nothing and beating them costs the defence everything. Let them try it, every time."},
     {t:"Pass backwards", tone:"fair",
-     r:"Safe, and sometimes right | There's nobody to pass to here, though. And a player who never takes anyone on never finds out what he can do."},
+     r:"Safe, and sometimes right | There's nobody to pass to here, though. And a player who never takes anyone on never finds out what they can do."},
     {t:"Stand still and wait", tone:"poor", mark:{poor:["A1"]},
      r:"The defender is delighted | Every second you hold it, another defender is running back. The one-against-one you had is gone."}
   ],
@@ -1358,8 +1419,8 @@ function loadScenario(n){
   P = sc.P; SPOT = sc.SPOT; STEPS = clone(sc.STEPS); ORIG = clone(sc.STEPS);
   if (!sc.tracks) trackIdx = 0;
   document.getElementById("scenSel").value = scenIdx + "|" + trackIdx;
-  right = 0; asked = 0;
-  hidePop(); hideTip();
+  right = 0; streak = 0; cheered = false; qscore = {};
+   hidePop(); hideTip();
   drawField(sc.field);
   buildSeq(); goSeq(0);
 }
@@ -1375,8 +1436,10 @@ var TRACKS = [{key:"F",name:"Full session"},{key:"S",name:"Short session"}];
 var trackIdx = 0, seq = [], pos_ = 0, cur = null;
 var askIdx = 0, resolved = false, acted = false, collapsed = false;
 var tried = {}, hitId = null, entering = [];
-var markGood = [], markPoor = [], chosen = -1, base = null, firstMiss = false, zonePicked = null;
-var right = 0, asked = 0, notesOpen = true;
+var markGood = [], markPoor = [], chosen = -1, base = null, zonePicked = null;
+var qscore = {};   // per-question verdict for this run: 'right' | 'wrong'
+var right = 0, notesOpen = true;
+var streak = 0, bestStreak = 0, cheered = false;
 
 function track(){ return TRACKS[trackIdx].key; }
 function buildSeq(){
@@ -1694,18 +1757,30 @@ function missFor(ask, id){
     : "Wrong team | That's a yellow attacker. You're looking for a blue defender.";
 }
 
+function qkey(){ return seq[pos_] + ":" + askIdx; }
+
 function onTap(id){
   var ask = currentAsk();
   if (!ask || resolved) return;
+  var k = qkey(), fresh = !(k in qscore);   // scored on the first tap ever, and never again
   if (id === ask.answer){
     resolved = true; hitId = id;
-    if (!firstMiss) right++;
-    asked++;
+    if (fresh){
+      qscore[k] = "right";
+      right++;
+      streak++; if (streak > bestStreak) bestStreak = streak;
+      play(streak % 5 === 0 ? "okBig" : "ok");
+      if (streak === 3 || streak === 5 || streak === 10) bumpStreak();
+    } else {
+      play("ok");
+    }
     if (ask.tag) cur.tags = merge(cur.tags, ask.tag);
     render();
     showPop(at(id), ask.ok, "ok");
   } else {
-    firstMiss = true; tried[id] = true;
+    if (fresh){ qscore[k] = "wrong"; streak = 0; }
+    tried[id] = true;
+    play("miss");
     render();
     showPop(at(id), missFor(ask, id), "miss");
   }
@@ -1714,6 +1789,7 @@ function onTap(id){
 function onZone(key){
   if (!cur.zoneResult) return;
   var tone = (cur.zoneTone && cur.zoneTone[key]) || "fair";
+  play(tone === "good" ? "ok" : tone === "poor" ? "miss" : "pick");
   zonePicked = key;
   if (cur.zoneOwner){
     var o = {}; o[cur.zoneOwner] = key;
@@ -1733,6 +1809,7 @@ function onZone(key){
 }
 
 function pickChoice(ci){
+  play("pick");
   var c = cur.choices[ci];
   chosen = ci;
   cur.at   = merge(base.at, c.at || {});
@@ -1759,7 +1836,7 @@ function goSeq(k){
   pos_ = Math.max(0, Math.min(seq.length - 1, k));
   cur = clone(STEPS[seq[pos_]]);
   askIdx = 0; resolved = false; acted = false; tried = {}; hitId = null; entering = [];
-  markGood = []; markPoor = []; chosen = -1; firstMiss = false;
+  markGood = []; markPoor = []; chosen = -1;
   zonePicked = null;
   base = {at:clone(cur.at || {}), ball:cur.ball, tags:clone(cur.tags || {}), cast:clone(cur.cast || [])};
   if (cur.coachOnly) notesOpen = true;     // its content lives in the right pane
@@ -1767,8 +1844,17 @@ function goSeq(k){
 }
 
 function nextAction(){
+  var last = pos_ >= seq.length - 1 && !(cur.asks && askIdx < cur.asks.length - 1);
+  if (!last && pos_ === seq.length - 2 && !(cur.asks && askIdx < cur.asks.length - 1)){
+    // arriving at the final step: a good run earns the referee's whistle
+    var total = scoredTotal();
+    if (!cheered && total > 0 && right >= Math.ceil(total * 0.7)){
+      cheered = true;
+      setTimeout(function(){ play("whistle"); }, 450);
+    }
+  }
   if (cur.asks && askIdx < cur.asks.length - 1){
-    askIdx++; resolved = false; tried = {}; hitId = null; firstMiss = false; hidePop(); render(); return;
+    askIdx++; resolved = false; tried = {}; hitId = null; hidePop(); render(); return;
   }
   if (pos_ >= seq.length - 1){ loadScenario(scenIdx); return; }
   goSeq(pos_ + 1);
@@ -1882,7 +1968,7 @@ function render(){
   why.innerHTML = "";
   (cur.why || []).forEach(function(w){ var li = document.createElement("li"); li.innerHTML = w; why.appendChild(li); });
 
-  paintRail(); paintTally(); paintLegend();
+  paintRail(); paintTally(); paintLegend(); paintStreak();
   entering = [];
 }
 
@@ -2000,6 +2086,19 @@ function scoredTotal(){
   });
   return n;
 }
+function paintStreak(){
+  var el2 = document.getElementById("streak");
+  el2.hidden = streak < 2;
+  if (streak < 2) return;
+  document.getElementById("streakN").textContent = streak;
+  el2.className = "streak" + (streak >= 10 ? " grow3" : streak >= 5 ? " grow2" : "");
+  el2.title = "Streak: " + streak + " right in a row (best " + bestStreak + ")";
+}
+function bumpStreak(){
+  var el2 = document.getElementById("streak");
+  el2.classList.remove("pop"); void el2.offsetWidth; el2.classList.add("pop");
+}
+
 function paintTally(){
   document.getElementById("tally").innerHTML =
     "SCORE <b>" + right + "</b> of " + scoredTotal();
@@ -2008,6 +2107,14 @@ function paintTally(){
 /* ============================================================
    CHROME
    ============================================================ */
+document.getElementById("sndBtn").addEventListener("click", function(){
+  sndOn = !sndOn;
+  this.setAttribute("aria-pressed", String(sndOn));
+  this.textContent = sndOn ? "\uD83D\uDD0A" : "\uD83D\uDD07";
+  var lb = sndOn ? "Sound is on" : "Sound is off";
+  this.setAttribute("aria-label", lb); this.title = lb;
+  if (sndOn){ ac(); play("ok"); }
+});
 document.getElementById("popX").addEventListener("click", hidePop);
 document.getElementById("notesToggle").addEventListener("click", function(){
   notesOpen = !notesOpen;
