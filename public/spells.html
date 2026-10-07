@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoP Spell Parchment Drops (Non-Summoning) - Quarm</title>
+    <title>PoP Spell Parchment Drops - Quarm</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .parchment-container {
@@ -13,6 +13,54 @@
             border-radius: 10px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             padding: 30px;
+        }
+        .header-section {
+            margin-bottom: 20px;
+        }
+        .tab-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 22px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+        .tab-btn {
+            appearance: none;
+            border: 2px solid #cbd5e1;
+            background: #f8fafc;
+            color: #475569;
+            padding: 10px 22px;
+            font-size: 1.02em;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+            border-color: #94a3b8;
+        }
+        .tab-btn.active {
+            background: #1e3c72;
+            color: #ffffff;
+            border-color: #1e3c72;
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25);
+        }
+        .tab-badge {
+            background: #cbd5e1;
+            color: #1e293b;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 700;
+        }
+        .tab-btn.active .tab-badge {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
         }
         .info-grid {
             display: grid;
@@ -45,7 +93,7 @@
             display: flex;
             gap: 12px;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
         }
         .search-bar input {
@@ -65,6 +113,87 @@
             color: #64748b;
             font-weight: 600;
         }
+        .zone-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 10px 14px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .zone-nav-label {
+            font-size: 0.85em;
+            font-weight: 700;
+            color: #64748b;
+            margin-right: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .zone-nav-pill {
+            font-size: 0.82em;
+            padding: 4px 10px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            color: #1e3c72;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .zone-nav-pill:hover {
+            background: #1e3c72;
+            color: #ffffff;
+            border-color: #1e3c72;
+        }
+        .zone-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+        .zone-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid #1e3c72;
+        }
+        .zone-title {
+            font-size: 1.15em;
+            font-weight: 700;
+            color: #1e3c72;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .zone-code {
+            font-family: monospace;
+            font-size: 0.8em;
+            color: #64748b;
+            font-weight: 600;
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .zone-badge {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 0.85em;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -73,19 +202,21 @@
         .data-table th {
             background: #1e3c72;
             color: white;
-            padding: 12px 14px;
+            padding: 10px 14px;
             text-align: left;
             cursor: pointer;
             user-select: none;
-            position: sticky;
-            top: 0;
+            font-size: 0.9em;
         }
         .data-table th:hover {
             background: #2a5298;
         }
         .data-table td {
-            padding: 10px 14px;
+            padding: 9px 14px;
             border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table tr:last-child td {
+            border-bottom: none;
         }
         .data-table tr:hover {
             background: #f1f5f9;
@@ -123,16 +254,36 @@
             margin-left: 4px;
             font-size: 0.8em;
         }
+        .no-matches {
+            padding: 40px;
+            text-align: center;
+            color: #64748b;
+            font-size: 1.1em;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="parchment-container">
-        <header>
+        <header class="header-section">
             <h1>📜 PoP Spell Parchment Drops</h1>
-            <p class="subtitle">Non-summoning enemies with high drop rates for solo play (Quarm Database)</p>
+            <p id="page-subtitle" class="subtitle">Non-summoning enemies with high drop rates for solo play (Quarm Database)</p>
         </header>
 
-        <div class="info-grid">
+        <div class="tab-bar">
+            <button class="tab-btn active" id="btn-tab-solo" onclick="switchTab('solo')">
+                Solo Spell Droppers <span class="tab-badge">52</span>
+            </button>
+            <button class="tab-btn" id="btn-tab-group" onclick="switchTab('group')">
+                Groupable Spell Droppers <span class="tab-badge">106</span>
+            </button>
+        </div>
+
+        <!-- Solo Info Cards -->
+        <div id="solo-info-grid" class="info-grid">
             <div class="info-card" style="border-left-color: #2e7d32;">
                 <h3>📜 Glyphed Rune Word (item/29132)</h3>
                 <p>Threshold: <strong>&gt; 0%</strong>. Only 3 non-summoning mobs drop this item: <strong>Zelrin Morlock</strong> and <strong>an Enraged War Boar</strong> in Tactics (10%), plus Tallon Zek (50%).</p>
@@ -147,32 +298,39 @@
             </div>
         </div>
 
+        <!-- Groupable Info Cards -->
+        <div id="group-info-grid" class="info-grid" style="display: none;">
+            <div class="info-card" style="border-left-color: #2e7d32;">
+                <h3>📜 Glyphed Rune Word (item/29132)</h3>
+                <p>Threshold: <strong>&ge; 5%</strong>. Top targets in <strong>Plane of Fire</strong> (23 mobs at 25%), <strong>Plane of Water</strong> (16 mobs at 25%), <strong>Tactics</strong> (6 mobs at 20–50%), and <strong>Tower of Solusek Ro</strong> (6 mobs at 25%).</p>
+            </div>
+            <div class="info-card" style="border-left-color: #1976d2;">
+                <h3>📜 Spectral Parchment (item/29131)</h3>
+                <p>Threshold: <strong>&ge; 10%</strong>. Top targets in <strong>Plane of Fire</strong> (23 mobs at 25%), <strong>Bastion of Thunder</strong> (20 mobs at 20–45%), <strong>Plane of Water</strong> (17 mobs at 25%), and <strong>Tactics &amp; Solusek Ro</strong> (20–50%).</p>
+            </div>
+            <div class="info-card" style="border-left-color: #f57c00;">
+                <h3>📜 Ethereal Parchment (item/29112)</h3>
+                <p>Threshold: <strong>&ge; 20%</strong>. Top targets in <strong>The Crypt of Decay</strong> (9 mobs at 25%), <strong>Plane of Nightmares</strong> (8 mobs at 25%), <strong>Torment</strong> (6 mobs at 25–66%), and <strong>Plane of Justice</strong> (4 mobs at 25–50%).</p>
+            </div>
+        </div>
+
         <div class="search-bar">
             <input type="text" id="filter-input" placeholder="Search by NPC name, zone, or level...">
             <span id="match-count" class="count-badge">52 matching mobs</span>
         </div>
 
-        <div style="overflow-x: auto; max-height: 70vh; border: 1px solid #e2e8f0; border-radius: 6px;">
-            <table class="data-table" id="parchment-table">
-                <thead>
-                    <tr>
-                        <th data-col="zone">Zone <span class="sort-arrow"></span></th>
-                        <th data-col="name">NPC Name <span class="sort-arrow"></span></th>
-                        <th data-col="level" class="center-cell">Level <span class="sort-arrow"></span></th>
-                        <th data-col="hp" class="num-cell">HP <span class="sort-arrow"></span></th>
-                        <th data-col="glyphed" class="num-cell">Glyphed % <span class="sort-arrow"></span></th>
-                        <th data-col="spectral" class="num-cell">Spectral % <span class="sort-arrow"></span></th>
-                        <th data-col="ethereal" class="num-cell">Ethereal % <span class="sort-arrow"></span></th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                </tbody>
-            </table>
+        <!-- Quick Jump Navigation -->
+        <div id="zone-nav-bar" class="zone-nav">
+            <span class="zone-nav-label">Jump to:</span>
+            <div id="zone-pills" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
         </div>
+
+        <!-- Zone Tables Container -->
+        <div id="zone-tables-container"></div>
     </div>
 
     <script>
-        const MOBS = [
+        const SOLO_MOBS = [
   {
     "id": 214026,
     "name": "Tallon Zek",
@@ -186,174 +344,6 @@
     "spectral": 100.0,
     "ethereal": 0.0,
     "link": "https://www.pqdi.cc/npc/214026"
-  },
-  {
-    "id": 214321,
-    "name": "Zelrin Morlock",
-    "raw_name": "#Zelrin_Morlock",
-    "zone": "Drunder, the Fortress of Zek",
-    "zone_code": "potactics",
-    "level": "63",
-    "level_num": 63,
-    "hp": 23150,
-    "glyphed": 10.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/214321"
-  },
-  {
-    "id": 214309,
-    "name": "an Enraged War Boar",
-    "raw_name": "#an_Enraged_War_Boar",
-    "zone": "Drunder, the Fortress of Zek",
-    "zone_code": "potactics",
-    "level": "62",
-    "level_num": 62,
-    "hp": 29500,
-    "glyphed": 10.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/214309"
-  },
-  {
-    "id": 207298,
-    "name": "A pain golem",
-    "raw_name": "#A_pain_golem",
-    "zone": "Torment, the Plane of Pain",
-    "zone_code": "potorment",
-    "level": "57",
-    "level_num": 57,
-    "hp": 18100,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 66.0,
-    "link": "https://www.pqdi.cc/npc/207298"
-  },
-  {
-    "id": 207305,
-    "name": "A sorrow seeker",
-    "raw_name": "#A_sorrow_seeker",
-    "zone": "Torment, the Plane of Pain",
-    "zone_code": "potorment",
-    "level": "58",
-    "level_num": 58,
-    "hp": 19400,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 66.0,
-    "link": "https://www.pqdi.cc/npc/207305"
-  },
-  {
-    "id": 207046,
-    "name": "A pain devourer",
-    "raw_name": "#A_pain_devourer",
-    "zone": "Torment, the Plane of Pain",
-    "zone_code": "potorment",
-    "level": "59",
-    "level_num": 59,
-    "hp": 20800,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 66.0,
-    "link": "https://www.pqdi.cc/npc/207046"
-  },
-  {
-    "id": 207312,
-    "name": "The Mouths of Misery",
-    "raw_name": "#The_Mouths_of_Misery",
-    "zone": "Torment, the Plane of Pain",
-    "zone_code": "potorment",
-    "level": "60",
-    "level_num": 60,
-    "hp": 22100,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 66.0,
-    "link": "https://www.pqdi.cc/npc/207312"
-  },
-  {
-    "id": 205134,
-    "name": "Rallius Rattican",
-    "raw_name": "#Rallius_Rattican",
-    "zone": "Plane of Disease",
-    "zone_code": "podisease",
-    "level": "61",
-    "level_num": 61,
-    "hp": 25000,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 50.0,
-    "link": "https://www.pqdi.cc/npc/205134"
-  },
-  {
-    "id": 207052,
-    "name": "Sorrowsong",
-    "raw_name": "Sorrowsong",
-    "zone": "Torment, the Plane of Pain",
-    "zone_code": "potorment",
-    "level": "66",
-    "level_num": 66,
-    "hp": 116000,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 50.0,
-    "link": "https://www.pqdi.cc/npc/207052"
-  },
-  {
-    "id": 214299,
-    "name": "a frenzied initiate",
-    "raw_name": "#a_frenzied_initiate",
-    "zone": "Drunder, the Fortress of Zek",
-    "zone_code": "potactics",
-    "level": "61",
-    "level_num": 61,
-    "hp": 22200,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/214299"
-  },
-  {
-    "id": 214298,
-    "name": "a frenzied initiate",
-    "raw_name": "a_frenzied_initiate",
-    "zone": "Drunder, the Fortress of Zek",
-    "zone_code": "potactics",
-    "level": "60",
-    "level_num": 60,
-    "hp": 26550,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/214298"
-  },
-  {
-    "id": 214297,
-    "name": "a frenzied initiate",
-    "raw_name": "a_frenzied_initiate",
-    "zone": "Drunder, the Fortress of Zek",
-    "zone_code": "potactics",
-    "level": "60",
-    "level_num": 60,
-    "hp": 26700,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/214297"
-  },
-  {
-    "id": 214325,
-    "name": "a frenzied initiate",
-    "raw_name": "a_frenzied_initiate",
-    "zone": "Drunder, the Fortress of Zek",
-    "zone_code": "potactics",
-    "level": "61",
-    "level_num": 61,
-    "hp": 28250,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/214325"
   },
   {
     "id": 211113,
@@ -382,118 +372,6 @@
     "spectral": 25.0,
     "ethereal": 0.0,
     "link": "https://www.pqdi.cc/npc/211114"
-  },
-  {
-    "id": 211115,
-    "name": "Nevor Jikman",
-    "raw_name": "Nevor_Jikman",
-    "zone": "Halls of Honor",
-    "zone_code": "hohonora",
-    "level": "66",
-    "level_num": 66,
-    "hp": 31200,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/211115"
-  },
-  {
-    "id": 211116,
-    "name": "Smesay Jacksby",
-    "raw_name": "Smesay_Jacksby",
-    "zone": "Halls of Honor",
-    "zone_code": "hohonora",
-    "level": "66",
-    "level_num": 66,
-    "hp": 31250,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/211116"
-  },
-  {
-    "id": 211079,
-    "name": "A Protector of Valor",
-    "raw_name": "A_Protector_of_Valor",
-    "zone": "Halls of Honor",
-    "zone_code": "hohonora",
-    "level": "63",
-    "level_num": 63,
-    "hp": 34500,
-    "glyphed": 0.0,
-    "spectral": 25.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/211079"
-  },
-  {
-    "id": 211021,
-    "name": "A Valorian Sentry ",
-    "raw_name": "A_Valorian_Sentry_",
-    "zone": "Halls of Honor",
-    "zone_code": "hohonora",
-    "level": "63",
-    "level_num": 63,
-    "hp": 26400,
-    "glyphed": 0.0,
-    "spectral": 7.0,
-    "ethereal": 0.0,
-    "link": "https://www.pqdi.cc/npc/211021"
-  },
-  {
-    "id": 208196,
-    "name": "Lieutenant Junis Bolarin",
-    "raw_name": "#Lieutenant_Junis_Bolarin",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "61",
-    "level_num": 61,
-    "hp": 23500,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 50.0,
-    "link": "https://www.pqdi.cc/npc/208196"
-  },
-  {
-    "id": 208072,
-    "name": "An Undead Footman",
-    "raw_name": "An_Undead_Footman",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "62",
-    "level_num": 62,
-    "hp": 25000,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 50.0,
-    "link": "https://www.pqdi.cc/npc/208072"
-  },
-  {
-    "id": 208195,
-    "name": "Lieutenant Baelin Dwinn",
-    "raw_name": "#Lieutenant_Baelin_Dwinn",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "62",
-    "level_num": 62,
-    "hp": 25200,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 50.0,
-    "link": "https://www.pqdi.cc/npc/208195"
-  },
-  {
-    "id": 208176,
-    "name": "Rahlgon",
-    "raw_name": "Rahlgon",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "65",
-    "level_num": 65,
-    "hp": 30000,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 50.0,
-    "link": "https://www.pqdi.cc/npc/208176"
   },
   {
     "id": 206054,
@@ -538,6 +416,426 @@
     "link": "https://www.pqdi.cc/npc/206055"
   },
   {
+    "id": 211115,
+    "name": "Nevor Jikman",
+    "raw_name": "Nevor_Jikman",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "66",
+    "level_num": 66,
+    "hp": 31200,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211115"
+  },
+  {
+    "id": 211116,
+    "name": "Smesay Jacksby",
+    "raw_name": "Smesay_Jacksby",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "66",
+    "level_num": 66,
+    "hp": 31250,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211116"
+  },
+  {
+    "id": 207052,
+    "name": "Sorrowsong",
+    "raw_name": "Sorrowsong",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "66",
+    "level_num": 66,
+    "hp": 116000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 50.0,
+    "link": "https://www.pqdi.cc/npc/207052"
+  },
+  {
+    "id": 208176,
+    "name": "Rahlgon",
+    "raw_name": "Rahlgon",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "65",
+    "level_num": 65,
+    "hp": 30000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 50.0,
+    "link": "https://www.pqdi.cc/npc/208176"
+  },
+  {
+    "id": 208213,
+    "name": "A Lumbering Beast",
+    "raw_name": "A_Lumbering_Beast",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "64",
+    "level_num": 64,
+    "hp": 30000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 30.0,
+    "link": "https://www.pqdi.cc/npc/208213"
+  },
+  {
+    "id": 208189,
+    "name": "A Razorfiend Subjugator",
+    "raw_name": "A_Razorfiend_Subjugator",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "64",
+    "level_num": 64,
+    "hp": 28000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 20.0,
+    "link": "https://www.pqdi.cc/npc/208189"
+  },
+  {
+    "id": 208190,
+    "name": "A Razorfiend Suppressor",
+    "raw_name": "A_Razorfiend_Suppressor",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "64",
+    "level_num": 64,
+    "hp": 28000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 15.0,
+    "link": "https://www.pqdi.cc/npc/208190"
+  },
+  {
+    "id": 214321,
+    "name": "Zelrin Morlock",
+    "raw_name": "#Zelrin_Morlock",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "63",
+    "level_num": 63,
+    "hp": 23150,
+    "glyphed": 10.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214321"
+  },
+  {
+    "id": 211079,
+    "name": "A Protector of Valor",
+    "raw_name": "A_Protector_of_Valor",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "63",
+    "level_num": 63,
+    "hp": 34500,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211079"
+  },
+  {
+    "id": 211021,
+    "name": "A Valorian Sentry ",
+    "raw_name": "A_Valorian_Sentry_",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "63",
+    "level_num": 63,
+    "hp": 26400,
+    "glyphed": 0.0,
+    "spectral": 7.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211021"
+  },
+  {
+    "id": 208195,
+    "name": "Lieutenant Baelin Dwinn",
+    "raw_name": "#Lieutenant_Baelin_Dwinn",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "62",
+    "level_num": 62,
+    "hp": 25200,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 50.0,
+    "link": "https://www.pqdi.cc/npc/208195"
+  },
+  {
+    "id": 214309,
+    "name": "an Enraged War Boar",
+    "raw_name": "#an_Enraged_War_Boar",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "62",
+    "level_num": 62,
+    "hp": 29500,
+    "glyphed": 10.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214309"
+  },
+  {
+    "id": 208187,
+    "name": "A Lucid Arachnae",
+    "raw_name": "A_Lucid_Arachnae",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "62",
+    "level_num": 62,
+    "hp": 25000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/208187"
+  },
+  {
+    "id": 208006,
+    "name": "A Luminii Crawler",
+    "raw_name": "A_Luminii_Crawler",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "62",
+    "level_num": 62,
+    "hp": 25000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 20.0,
+    "link": "https://www.pqdi.cc/npc/208006"
+  },
+  {
+    "id": 208072,
+    "name": "An Undead Footman",
+    "raw_name": "An_Undead_Footman",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "62",
+    "level_num": 62,
+    "hp": 25000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 50.0,
+    "link": "https://www.pqdi.cc/npc/208072"
+  },
+  {
+    "id": 208196,
+    "name": "Lieutenant Junis Bolarin",
+    "raw_name": "#Lieutenant_Junis_Bolarin",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "61",
+    "level_num": 61,
+    "hp": 23500,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 50.0,
+    "link": "https://www.pqdi.cc/npc/208196"
+  },
+  {
+    "id": 205134,
+    "name": "Rallius Rattican",
+    "raw_name": "#Rallius_Rattican",
+    "zone": "Plane of Disease",
+    "zone_code": "podisease",
+    "level": "61",
+    "level_num": 61,
+    "hp": 25000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 50.0,
+    "link": "https://www.pqdi.cc/npc/205134"
+  },
+  {
+    "id": 214299,
+    "name": "a frenzied initiate",
+    "raw_name": "#a_frenzied_initiate",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "61",
+    "level_num": 61,
+    "hp": 22200,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214299"
+  },
+  {
+    "id": 208191,
+    "name": "A Skeletal Guardian",
+    "raw_name": "A_Skeletal_Guardian",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "61",
+    "level_num": 61,
+    "hp": 23600,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/208191"
+  },
+  {
+    "id": 208193,
+    "name": "A Traglimite Frog",
+    "raw_name": "A_Traglimite_Frog",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "61",
+    "level_num": 61,
+    "hp": 23650,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/208193"
+  },
+  {
+    "id": 214325,
+    "name": "a frenzied initiate",
+    "raw_name": "a_frenzied_initiate",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "61",
+    "level_num": 61,
+    "hp": 28250,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214325"
+  },
+  {
+    "id": 207312,
+    "name": "The Mouths of Misery",
+    "raw_name": "#The_Mouths_of_Misery",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "60",
+    "level_num": 60,
+    "hp": 22100,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 66.0,
+    "link": "https://www.pqdi.cc/npc/207312"
+  },
+  {
+    "id": 210244,
+    "name": "a Diaku Raider",
+    "raw_name": "#a_Diaku_Raider",
+    "zone": "Plane of Storms",
+    "zone_code": "postorms",
+    "level": "60",
+    "level_num": 60,
+    "hp": 26500,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/210244"
+  },
+  {
+    "id": 210456,
+    "name": "a Diaku Raider",
+    "raw_name": "#a_Diaku_Raider",
+    "zone": "Plane of Storms",
+    "zone_code": "postorms",
+    "level": "60",
+    "level_num": 60,
+    "hp": 25400,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/210456"
+  },
+  {
+    "id": 210457,
+    "name": "a Diaku Raider",
+    "raw_name": "#a_Diaku_Raider",
+    "zone": "Plane of Storms",
+    "zone_code": "postorms",
+    "level": "60",
+    "level_num": 60,
+    "hp": 24170,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/210457"
+  },
+  {
+    "id": 210167,
+    "name": "a Diaku Raider",
+    "raw_name": "#a_Diaku_Raider",
+    "zone": "Plane of Storms",
+    "zone_code": "postorms",
+    "level": "60",
+    "level_num": 60,
+    "hp": 23400,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/210167"
+  },
+  {
+    "id": 214297,
+    "name": "a frenzied initiate",
+    "raw_name": "a_frenzied_initiate",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "60",
+    "level_num": 60,
+    "hp": 26700,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214297"
+  },
+  {
+    "id": 214298,
+    "name": "a frenzied initiate",
+    "raw_name": "a_frenzied_initiate",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "60",
+    "level_num": 60,
+    "hp": 26550,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214298"
+  },
+  {
+    "id": 207046,
+    "name": "A pain devourer",
+    "raw_name": "#A_pain_devourer",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "59",
+    "level_num": 59,
+    "hp": 20800,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 66.0,
+    "link": "https://www.pqdi.cc/npc/207046"
+  },
+  {
+    "id": 207305,
+    "name": "A sorrow seeker",
+    "raw_name": "#A_sorrow_seeker",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "58",
+    "level_num": 58,
+    "hp": 19400,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 66.0,
+    "link": "https://www.pqdi.cc/npc/207305"
+  },
+  {
     "id": 205167,
     "name": "a malarian metamo",
     "raw_name": "a_malarian_metamo",
@@ -552,32 +850,18 @@
     "link": "https://www.pqdi.cc/npc/205167"
   },
   {
-    "id": 205119,
-    "name": "Rankle",
-    "raw_name": "Rankle",
-    "zone": "Plane of Disease",
-    "zone_code": "podisease",
-    "level": "54-56",
-    "level_num": 54,
-    "hp": 15800,
+    "id": 207298,
+    "name": "A pain golem",
+    "raw_name": "#A_pain_golem",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "57",
+    "level_num": 57,
+    "hp": 18100,
     "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 33.0,
-    "link": "https://www.pqdi.cc/npc/205119"
-  },
-  {
-    "id": 205169,
-    "name": "a pusling sage",
-    "raw_name": "a_pusling_sage",
-    "zone": "Plane of Disease",
-    "zone_code": "podisease",
-    "level": "55-57",
-    "level_num": 55,
-    "hp": 15000,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 30.0,
-    "link": "https://www.pqdi.cc/npc/205169"
+    "spectral": 25.0,
+    "ethereal": 66.0,
+    "link": "https://www.pqdi.cc/npc/207298"
   },
   {
     "id": 205153,
@@ -608,60 +892,32 @@
     "link": "https://www.pqdi.cc/npc/205168"
   },
   {
-    "id": 208213,
-    "name": "A Lumbering Beast",
-    "raw_name": "A_Lumbering_Beast",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "64",
-    "level_num": 64,
-    "hp": 30000,
+    "id": 205169,
+    "name": "a pusling sage",
+    "raw_name": "a_pusling_sage",
+    "zone": "Plane of Disease",
+    "zone_code": "podisease",
+    "level": "55-57",
+    "level_num": 55,
+    "hp": 15000,
     "glyphed": 0.0,
     "spectral": 0.0,
     "ethereal": 30.0,
-    "link": "https://www.pqdi.cc/npc/208213"
+    "link": "https://www.pqdi.cc/npc/205169"
   },
   {
-    "id": 205171,
-    "name": "a sengian fly",
-    "raw_name": "a_sengian_fly",
+    "id": 205119,
+    "name": "Rankle",
+    "raw_name": "Rankle",
     "zone": "Plane of Disease",
     "zone_code": "podisease",
-    "level": "50-52",
-    "level_num": 50,
-    "hp": 11400,
+    "level": "54-56",
+    "level_num": 54,
+    "hp": 15800,
     "glyphed": 0.0,
     "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/205171"
-  },
-  {
-    "id": 205140,
-    "name": "a generian fly",
-    "raw_name": "a_generian_fly",
-    "zone": "Plane of Disease",
-    "zone_code": "podisease",
-    "level": "52",
-    "level_num": 52,
-    "hp": 12100,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/205140"
-  },
-  {
-    "id": 205129,
-    "name": "a scaevian fly",
-    "raw_name": "a_scaevian_fly",
-    "zone": "Plane of Disease",
-    "zone_code": "podisease",
-    "level": "52",
-    "level_num": 52,
-    "hp": 12100,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/205129"
+    "ethereal": 33.0,
+    "link": "https://www.pqdi.cc/npc/205119"
   },
   {
     "id": 205163,
@@ -706,132 +962,6 @@
     "link": "https://www.pqdi.cc/npc/205135"
   },
   {
-    "id": 205149,
-    "name": "a scaevian larva",
-    "raw_name": "a_scaevian_larva",
-    "zone": "Plane of Disease",
-    "zone_code": "podisease",
-    "level": "54-56",
-    "level_num": 54,
-    "hp": 15800,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/205149"
-  },
-  {
-    "id": 205150,
-    "name": "a sengian larva",
-    "raw_name": "a_sengian_larva",
-    "zone": "Plane of Disease",
-    "zone_code": "podisease",
-    "level": "54-56",
-    "level_num": 54,
-    "hp": 15800,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/205150"
-  },
-  {
-    "id": 210167,
-    "name": "a Diaku Raider",
-    "raw_name": "#a_Diaku_Raider",
-    "zone": "Plane of Storms",
-    "zone_code": "postorms",
-    "level": "60",
-    "level_num": 60,
-    "hp": 23400,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/210167"
-  },
-  {
-    "id": 208191,
-    "name": "A Skeletal Guardian",
-    "raw_name": "A_Skeletal_Guardian",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "61",
-    "level_num": 61,
-    "hp": 23600,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/208191"
-  },
-  {
-    "id": 208193,
-    "name": "A Traglimite Frog",
-    "raw_name": "A_Traglimite_Frog",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "61",
-    "level_num": 61,
-    "hp": 23650,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/208193"
-  },
-  {
-    "id": 210457,
-    "name": "a Diaku Raider",
-    "raw_name": "#a_Diaku_Raider",
-    "zone": "Plane of Storms",
-    "zone_code": "postorms",
-    "level": "60",
-    "level_num": 60,
-    "hp": 24170,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/210457"
-  },
-  {
-    "id": 208187,
-    "name": "A Lucid Arachnae",
-    "raw_name": "A_Lucid_Arachnae",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "62",
-    "level_num": 62,
-    "hp": 25000,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/208187"
-  },
-  {
-    "id": 210456,
-    "name": "a Diaku Raider",
-    "raw_name": "#a_Diaku_Raider",
-    "zone": "Plane of Storms",
-    "zone_code": "postorms",
-    "level": "60",
-    "level_num": 60,
-    "hp": 25400,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/210456"
-  },
-  {
-    "id": 210244,
-    "name": "a Diaku Raider",
-    "raw_name": "#a_Diaku_Raider",
-    "zone": "Plane of Storms",
-    "zone_code": "postorms",
-    "level": "60",
-    "level_num": 60,
-    "hp": 26500,
-    "glyphed": 0.0,
-    "spectral": 0.0,
-    "ethereal": 25.0,
-    "link": "https://www.pqdi.cc/npc/210244"
-  },
-  {
     "id": 205052,
     "name": "a pile of swamp bile",
     "raw_name": "a_pile_of_swamp_bile",
@@ -860,137 +990,1771 @@
     "link": "https://www.pqdi.cc/npc/205170"
   },
   {
-    "id": 208006,
-    "name": "A Luminii Crawler",
-    "raw_name": "A_Luminii_Crawler",
+    "id": 205149,
+    "name": "a scaevian larva",
+    "raw_name": "a_scaevian_larva",
+    "zone": "Plane of Disease",
+    "zone_code": "podisease",
+    "level": "54-56",
+    "level_num": 54,
+    "hp": 15800,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/205149"
+  },
+  {
+    "id": 205150,
+    "name": "a sengian larva",
+    "raw_name": "a_sengian_larva",
+    "zone": "Plane of Disease",
+    "zone_code": "podisease",
+    "level": "54-56",
+    "level_num": 54,
+    "hp": 15800,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/205150"
+  },
+  {
+    "id": 205140,
+    "name": "a generian fly",
+    "raw_name": "a_generian_fly",
+    "zone": "Plane of Disease",
+    "zone_code": "podisease",
+    "level": "52",
+    "level_num": 52,
+    "hp": 12100,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/205140"
+  },
+  {
+    "id": 205129,
+    "name": "a scaevian fly",
+    "raw_name": "a_scaevian_fly",
+    "zone": "Plane of Disease",
+    "zone_code": "podisease",
+    "level": "52",
+    "level_num": 52,
+    "hp": 12100,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/205129"
+  },
+  {
+    "id": 205171,
+    "name": "a sengian fly",
+    "raw_name": "a_sengian_fly",
+    "zone": "Plane of Disease",
+    "zone_code": "podisease",
+    "level": "50-52",
+    "level_num": 50,
+    "hp": 11400,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/205171"
+  }
+];
+        const GROUP_MOBS = [
+  {
+    "id": 214075,
+    "name": "Hinvat Deathbringer",
+    "raw_name": "#Hinvat_Deathbringer",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "70",
+    "level_num": 70,
+    "hp": 76600,
+    "glyphed": 20.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214075"
+  },
+  {
+    "id": 217435,
+    "name": "Dark Obsidian Lava Spider",
+    "raw_name": "Dark_Obsidian_Lava_Spider",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 63500,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217435"
+  },
+  {
+    "id": 217436,
+    "name": "Doomfire Firecharmer",
+    "raw_name": "Doomfire_Firecharmer",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 36400,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217436"
+  },
+  {
+    "id": 217437,
+    "name": "Doomfire Magus",
+    "raw_name": "Doomfire_Magus",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 36800,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217437"
+  },
+  {
+    "id": 217438,
+    "name": "Doomfire Reaver",
+    "raw_name": "Doomfire_Reaver",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 60300,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217438"
+  },
+  {
+    "id": 217439,
+    "name": "Doomfire Vicar",
+    "raw_name": "Doomfire_Vicar",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 50300,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217439"
+  },
+  {
+    "id": 217092,
+    "name": "Doomfire Warlord",
+    "raw_name": "Doomfire_Warlord",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 67000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217092"
+  },
+  {
+    "id": 217065,
+    "name": "Doomfire Warmaster",
+    "raw_name": "Doomfire_Warmaster",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 59100,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217065"
+  },
+  {
+    "id": 217441,
+    "name": "Fiery Spirit Equine Overlord",
+    "raw_name": "Fiery_Spirit_Equine_Overlord",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 67000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217441"
+  },
+  {
+    "id": 217442,
+    "name": "Flame Overlord",
+    "raw_name": "Flame_Overlord",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 67300,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217442"
+  },
+  {
+    "id": 216239,
+    "name": "Frenzied Anglerfish",
+    "raw_name": "Frenzied_Anglerfish",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 61700,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216239"
+  },
+  {
+    "id": 216237,
+    "name": "Furious Deepwater Kraken",
+    "raw_name": "Furious_Deepwater_Kraken",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 56400,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216237"
+  },
+  {
+    "id": 216242,
+    "name": "Hraquis Arch Magus",
+    "raw_name": "Hraquis_Arch_Magus",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 34000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216242"
+  },
+  {
+    "id": 216243,
+    "name": "Hraquis Chieftain",
+    "raw_name": "Hraquis_Chieftain",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 51000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216243"
+  },
+  {
+    "id": 217407,
+    "name": "Magma Overlord",
+    "raw_name": "Magma_Overlord",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "70",
+    "level_num": 70,
+    "hp": 65000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217407"
+  },
+  {
+    "id": 216246,
+    "name": "Regrua Overlord",
+    "raw_name": "Regrua_Overlord",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 67000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216246"
+  },
+  {
+    "id": 216106,
+    "name": "Regrua Protector",
+    "raw_name": "Regrua_Protector",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 67000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216106"
+  },
+  {
+    "id": 216054,
+    "name": "Savage Deepwater Kraken",
+    "raw_name": "Savage_Deepwater_Kraken",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 60000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216054"
+  },
+  {
+    "id": 214092,
+    "name": "The Diaku Overseer",
+    "raw_name": "The_Diaku_Overseer",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "70",
+    "level_num": 70,
+    "hp": 76550,
+    "glyphed": 50.0,
+    "spectral": 50.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214092"
+  },
+  {
+    "id": 216235,
+    "name": "Triloun Warder",
+    "raw_name": "Triloun_Warder",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "70",
+    "level_num": 70,
+    "hp": 47700,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216235"
+  },
+  {
+    "id": 214033,
+    "name": "Anival the Blade",
+    "raw_name": "#Anival_the_Blade",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "69",
+    "level_num": 69,
+    "hp": 73500,
+    "glyphed": 20.0,
+    "spectral": 20.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214033"
+  },
+  {
+    "id": 214051,
+    "name": "Shadow Master Vinta",
+    "raw_name": "#Shadow_Master_Vinta",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "69",
+    "level_num": 69,
+    "hp": 66500,
+    "glyphed": 20.0,
+    "spectral": 20.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214051"
+  },
+  {
+    "id": 217431,
+    "name": "Captain of Fire",
+    "raw_name": "Captain_of_Fire",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 64100,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217431"
+  },
+  {
+    "id": 217434,
+    "name": "Charmer of Fire",
+    "raw_name": "Charmer_of_Fire",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 33200,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217434"
+  },
+  {
+    "id": 217444,
+    "name": "Jopal Chieftain",
+    "raw_name": "Jopal_Chieftain",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 60300,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217444"
+  },
+  {
+    "id": 217445,
+    "name": "Jopal Crafter",
+    "raw_name": "Jopal_Crafter",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 60000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217445"
+  },
+  {
+    "id": 217446,
+    "name": "Jopal Flame Protector",
+    "raw_name": "Jopal_Flame_Protector",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 53000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217446"
+  },
+  {
+    "id": 217447,
+    "name": "Jopal Seer",
+    "raw_name": "Jopal_Seer",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 45800,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217447"
+  },
+  {
+    "id": 217449,
+    "name": "Obsidian War Spider",
+    "raw_name": "Obsidian_War_Spider",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 48300,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217449"
+  },
+  {
+    "id": 217450,
+    "name": "Sorcerer of Fire",
+    "raw_name": "Sorcerer_of_Fire",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 33000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217450"
+  },
+  {
+    "id": 217451,
+    "name": "Vicar of Fire",
+    "raw_name": "Vicar_of_Fire",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "69",
+    "level_num": 69,
+    "hp": 44700,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217451"
+  },
+  {
+    "id": 212059,
+    "name": "a flare mephit",
+    "raw_name": "#a_flare_mephit",
+    "zone": "Tower of Solusek Ro",
+    "zone_code": "solrotower",
+    "level": "68",
+    "level_num": 68,
+    "hp": 50000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/212059"
+  },
+  {
+    "id": 212393,
+    "name": "a pumice collector",
+    "raw_name": "#a_pumice_collector",
+    "zone": "Tower of Solusek Ro",
+    "zone_code": "solrotower",
+    "level": "68",
+    "level_num": 68,
+    "hp": 25400,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/212393"
+  },
+  {
+    "id": 216238,
+    "name": "Ferocious Barracuda",
+    "raw_name": "Ferocious_Barracuda",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 50100,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216238"
+  },
+  {
+    "id": 217443,
+    "name": "Flame Wilder",
+    "raw_name": "Flame_Wilder",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "68",
+    "level_num": 68,
+    "hp": 54900,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217443"
+  },
+  {
+    "id": 216037,
+    "name": "Gigadon",
+    "raw_name": "Gigadon",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 57400,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216037"
+  },
+  {
+    "id": 216241,
+    "name": "Hammertooth",
+    "raw_name": "Hammertooth",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 56000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216241"
+  },
+  {
+    "id": 217448,
+    "name": "Jopal Tracker",
+    "raw_name": "Jopal_Tracker",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "68",
+    "level_num": 68,
+    "hp": 47100,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217448"
+  },
+  {
+    "id": 216244,
+    "name": "Monstrous Sea Turtle",
+    "raw_name": "Monstrous_Sea_Turtle",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 52500,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216244"
+  },
+  {
+    "id": 217457,
+    "name": "Obsidian Tree Spider Queen",
+    "raw_name": "Obsidian_Tree_Spider_Queen",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "68",
+    "level_num": 68,
+    "hp": 52200,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217457"
+  },
+  {
+    "id": 216240,
+    "name": "Razorfin",
+    "raw_name": "Razorfin",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 50100,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216240"
+  },
+  {
+    "id": 216248,
+    "name": "Swordfang",
+    "raw_name": "Swordfang",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 48400,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216248"
+  },
+  {
+    "id": 216234,
+    "name": "Triloun Egg Keeper",
+    "raw_name": "Triloun_Egg_Keeper",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 40100,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216234"
+  },
+  {
+    "id": 216105,
+    "name": "Triloun Seer",
+    "raw_name": "Triloun_Seer",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 39200,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216105"
+  },
+  {
+    "id": 204035,
+    "name": "Untel`Dak",
+    "raw_name": "Untel`Dak",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "68",
+    "level_num": 68,
+    "hp": 37000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204035"
+  },
+  {
+    "id": 217452,
+    "name": "Wild Fiery Spirit Steed",
+    "raw_name": "Wild_Fiery_Spirit_Steed",
+    "zone": "Plane of Fire",
+    "zone_code": "pofire",
+    "level": "68",
+    "level_num": 68,
+    "hp": 54800,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/217452"
+  },
+  {
+    "id": 216263,
+    "name": "an enormous frog",
+    "raw_name": "an_enormous_frog",
+    "zone": "Plane of Water",
+    "zone_code": "powater",
+    "level": "68",
+    "level_num": 68,
+    "hp": 44500,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/216263"
+  },
+  {
+    "id": 212396,
+    "name": "a fervid magmin",
+    "raw_name": "#a_fervid_magmin",
+    "zone": "Tower of Solusek Ro",
+    "zone_code": "solrotower",
+    "level": "67",
+    "level_num": 67,
+    "hp": 50000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/212396"
+  },
+  {
+    "id": 212398,
+    "name": "a runed giant",
+    "raw_name": "#a_runed_giant",
+    "zone": "Tower of Solusek Ro",
+    "zone_code": "solrotower",
+    "level": "67",
+    "level_num": 67,
+    "hp": 24000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 5.0,
+    "link": "https://www.pqdi.cc/npc/212398"
+  },
+  {
+    "id": 212044,
+    "name": "a sweltering mephit",
+    "raw_name": "#a_sweltering_mephit",
+    "zone": "Tower of Solusek Ro",
+    "zone_code": "solrotower",
+    "level": "67",
+    "level_num": 67,
+    "hp": 24000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/212044"
+  },
+  {
+    "id": 214314,
+    "name": "The Diaku Armorer",
+    "raw_name": "#The_Diaku_Armorer",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "66",
+    "level_num": 66,
+    "hp": 34200,
+    "glyphed": 20.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214314"
+  },
+  {
+    "id": 214315,
+    "name": "The Diaku Supplier",
+    "raw_name": "#The_Diaku_Supplier",
+    "zone": "Drunder, the Fortress of Zek",
+    "zone_code": "potactics",
+    "level": "66",
+    "level_num": 66,
+    "hp": 34100,
+    "glyphed": 20.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/214315"
+  },
+  {
+    "id": 212024,
+    "name": "a radiant guardian",
+    "raw_name": "#a_radiant_guardian",
+    "zone": "Tower of Solusek Ro",
+    "zone_code": "solrotower",
+    "level": "66",
+    "level_num": 66,
+    "hp": 60000,
+    "glyphed": 25.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/212024"
+  },
+  {
+    "id": 211044,
+    "name": "A Rabid Wrulon",
+    "raw_name": "A_Rabid_Wrulon",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "66",
+    "level_num": 66,
+    "hp": 65000,
+    "glyphed": 10.0,
+    "spectral": 10.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211044"
+  },
+  {
+    "id": 211045,
+    "name": "A Recuso Degenerate",
+    "raw_name": "A_Recuso_Degenerate",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "66",
+    "level_num": 66,
+    "hp": 65000,
+    "glyphed": 10.0,
+    "spectral": 10.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211045"
+  },
+  {
+    "id": 211043,
+    "name": "An Undead Inhabitant",
+    "raw_name": "An_Undead_Inhabitant",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "66",
+    "level_num": 66,
+    "hp": 60000,
+    "glyphed": 10.0,
+    "spectral": 10.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211043"
+  },
+  {
+    "id": 211111,
+    "name": "Captain Danon Shern",
+    "raw_name": "Captain_Danon_Shern",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "66",
+    "level_num": 66,
+    "hp": 31250,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211111"
+  },
+  {
+    "id": 211112,
+    "name": "Captain Kage Shou",
+    "raw_name": "Captain_Kage_Shou",
+    "zone": "Halls of Honor",
+    "zone_code": "hohonora",
+    "level": "66",
+    "level_num": 66,
+    "hp": 31250,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/211112"
+  },
+  {
+    "id": 204034,
+    "name": "Terror Matriarch",
+    "raw_name": "#Terror_Matriarch",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "65",
+    "level_num": 65,
+    "hp": 36000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204034"
+  },
+  {
+    "id": 200236,
+    "name": "Elite Knight of Decay",
+    "raw_name": "Elite_Knight_of_Decay",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "65",
+    "level_num": 65,
+    "hp": 32500,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200236"
+  },
+  {
+    "id": 200237,
+    "name": "Elite Necromancer of Decay",
+    "raw_name": "Elite_Necromancer_of_Decay",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "65",
+    "level_num": 65,
+    "hp": 24800,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200237"
+  },
+  {
+    "id": 200238,
+    "name": "Elite Priest of Decay",
+    "raw_name": "Elite_Priest_of_Decay",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "65",
+    "level_num": 65,
+    "hp": 40400,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200238"
+  },
+  {
+    "id": 200239,
+    "name": "Eviscerator Fwexar",
+    "raw_name": "Eviscerator_Fwexar",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "65",
+    "level_num": 65,
+    "hp": 34100,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200239"
+  },
+  {
+    "id": 209071,
+    "name": "Gaukr Sandstorm",
+    "raw_name": "Gaukr_Sandstorm",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "65",
+    "level_num": 65,
+    "hp": 80000,
+    "glyphed": 20.0,
+    "spectral": 45.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209071"
+  },
+  {
+    "id": 209082,
+    "name": "Hreidar Lynhillig",
+    "raw_name": "Hreidar_Lynhillig",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "65",
+    "level_num": 65,
+    "hp": 80000,
+    "glyphed": 20.0,
+    "spectral": 45.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209082"
+  },
+  {
+    "id": 209070,
+    "name": "Laef Windfall",
+    "raw_name": "Laef_Windfall",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "65",
+    "level_num": 65,
+    "hp": 80000,
+    "glyphed": 20.0,
+    "spectral": 45.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209070"
+  },
+  {
+    "id": 209072,
+    "name": "Oreen Wavecrasher",
+    "raw_name": "Oreen_Wavecrasher",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "65",
+    "level_num": 65,
+    "hp": 80000,
+    "glyphed": 20.0,
+    "spectral": 45.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209072"
+  },
+  {
+    "id": 204044,
+    "name": "a fearsome hobgoblin",
+    "raw_name": "#a_fearsome_hobgoblin",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "64",
+    "level_num": 64,
+    "hp": 27400,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204044"
+  },
+  {
+    "id": 209137,
+    "name": "Amnquetil Brynjulffr",
+    "raw_name": "Amnquetil_Brynjulffr",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209137"
+  },
+  {
+    "id": 209139,
+    "name": "Atle Cloudburst",
+    "raw_name": "Atle_Cloudburst",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 40800,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209139"
+  },
+  {
+    "id": 209140,
+    "name": "Bordir Bjomolf",
+    "raw_name": "Bordir_Bjomolf",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 51000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209140"
+  },
+  {
+    "id": 209141,
+    "name": "Eindride Icestorm",
+    "raw_name": "Eindride_Icestorm",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209141"
+  },
+  {
+    "id": 209109,
+    "name": "Elif Whitewind",
+    "raw_name": "Elif_Whitewind",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209109"
+  },
+  {
+    "id": 209143,
+    "name": "Erech Eyford",
+    "raw_name": "Erech_Eyford",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209143"
+  },
+  {
+    "id": 209144,
+    "name": "Fogl Iceshard",
+    "raw_name": "Fogl_Iceshard",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209144"
+  },
+  {
+    "id": 209145,
+    "name": "Galm Snowdrift",
+    "raw_name": "Galm_Snowdrift",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 51000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209145"
+  },
+  {
+    "id": 200253,
+    "name": "Plague Lord Hetral",
+    "raw_name": "Plague_Lord_Hetral",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "64",
+    "level_num": 64,
+    "hp": 33300,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200253"
+  },
+  {
+    "id": 209149,
+    "name": "Riodhr Torrentwind",
+    "raw_name": "Riodhr_Torrentwind",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 51000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209149"
+  },
+  {
+    "id": 209150,
+    "name": "Rorek Steelthorn",
+    "raw_name": "Rorek_Steelthorn",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209150"
+  },
+  {
+    "id": 209151,
+    "name": "Thangbrand",
+    "raw_name": "Thangbrand",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209151"
+  },
+  {
+    "id": 209152,
+    "name": "Thorolf Sutherland",
+    "raw_name": "Thorolf_Sutherland",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 51000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209152"
+  },
+  {
+    "id": 209153,
+    "name": "Torstien Stoneskin",
+    "raw_name": "Torstien_Stoneskin",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 51000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209153"
+  },
+  {
+    "id": 209097,
+    "name": "Valbrand",
+    "raw_name": "Valbrand",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209097"
+  },
+  {
+    "id": 209154,
+    "name": "Wybjorn",
+    "raw_name": "Wybjorn",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 56000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209154"
+  },
+  {
+    "id": 209155,
+    "name": "Ymir Stormseer",
+    "raw_name": "Ymir_Stormseer",
+    "zone": "Bastion of Thunder",
+    "zone_code": "bothunder",
+    "level": "64",
+    "level_num": 64,
+    "hp": 51000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 0.0,
+    "link": "https://www.pqdi.cc/npc/209155"
+  },
+  {
+    "id": 208197,
+    "name": "Sergeant Terrick Burns",
+    "raw_name": "#Sergeant_Terrick_Burns",
     "zone": "Plane of Valor",
     "zone_code": "povalor",
+    "level": "63",
+    "level_num": 63,
+    "hp": 28500,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 20.0,
+    "link": "https://www.pqdi.cc/npc/208197"
+  },
+  {
+    "id": 207313,
+    "name": "The Avatar of Agony",
+    "raw_name": "#The_Avatar_of_Agony",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "63",
+    "level_num": 63,
+    "hp": 52800,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/207313"
+  },
+  {
+    "id": 207314,
+    "name": "The Avatar of Anguish",
+    "raw_name": "#The_Avatar_of_Anguish",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "63",
+    "level_num": 63,
+    "hp": 52800,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/207314"
+  },
+  {
+    "id": 207315,
+    "name": "The Avatar of Pain",
+    "raw_name": "#The_Avatar_of_Pain",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "63",
+    "level_num": 63,
+    "hp": 52800,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/207315"
+  },
+  {
+    "id": 207316,
+    "name": "The Avatar of Suffering",
+    "raw_name": "#The_Avatar_of_Suffering",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "63",
+    "level_num": 63,
+    "hp": 52800,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/207316"
+  },
+  {
+    "id": 200264,
+    "name": "Witchdoctor Orxkra",
+    "raw_name": "Witchdoctor_Orxkra",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "63",
+    "level_num": 63,
+    "hp": 27450,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200264"
+  },
+  {
+    "id": 204048,
+    "name": "a fiendish consort",
+    "raw_name": "a_fiendish_consort",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "63",
+    "level_num": 63,
+    "hp": 25100,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204048"
+  },
+  {
+    "id": 204016,
+    "name": "an infernal consort",
+    "raw_name": "an_infernal_consort",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "63",
+    "level_num": 63,
+    "hp": 26500,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204016"
+  },
+  {
+    "id": 201492,
+    "name": "the ancient crawler",
+    "raw_name": "#the_ancient_crawler",
+    "zone": "Plane of Justice",
+    "zone_code": "pojustice",
     "level": "62",
     "level_num": 62,
-    "hp": 25000,
+    "hp": 19000,
     "glyphed": 0.0,
     "spectral": 0.0,
-    "ethereal": 20.0,
-    "link": "https://www.pqdi.cc/npc/208006"
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/201492"
   },
   {
-    "id": 208189,
-    "name": "A Razorfiend Subjugator",
-    "raw_name": "A_Razorfiend_Subjugator",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "64",
-    "level_num": 64,
-    "hp": 28000,
+    "id": 201494,
+    "name": "the yrendan scarab",
+    "raw_name": "#the_yrendan_scarab",
+    "zone": "Plane of Justice",
+    "zone_code": "pojustice",
+    "level": "62",
+    "level_num": 62,
+    "hp": 18200,
     "glyphed": 0.0,
     "spectral": 0.0,
-    "ethereal": 20.0,
-    "link": "https://www.pqdi.cc/npc/208189"
+    "ethereal": 50.0,
+    "link": "https://www.pqdi.cc/npc/201494"
   },
   {
-    "id": 208190,
-    "name": "A Razorfiend Suppressor",
-    "raw_name": "A_Razorfiend_Suppressor",
-    "zone": "Plane of Valor",
-    "zone_code": "povalor",
-    "level": "64",
-    "level_num": 64,
-    "hp": 28000,
+    "id": 207296,
+    "name": "A Kaniz flesh flayer",
+    "raw_name": "A_Kaniz_flesh_flayer",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "62",
+    "level_num": 62,
+    "hp": 25300,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 33.0,
+    "link": "https://www.pqdi.cc/npc/207296"
+  },
+  {
+    "id": 200150,
+    "name": "Deathbone Archmagus",
+    "raw_name": "Deathbone_Archmagus",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "61",
+    "level_num": 61,
+    "hp": 24000,
     "glyphed": 0.0,
     "spectral": 0.0,
-    "ethereal": 15.0,
-    "link": "https://www.pqdi.cc/npc/208190"
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200150"
+  },
+  {
+    "id": 207310,
+    "name": "Dirge Malicia",
+    "raw_name": "Dirge_Malicia",
+    "zone": "Torment, the Plane of Pain",
+    "zone_code": "potorment",
+    "level": "61",
+    "level_num": 61,
+    "hp": 21500,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 66.0,
+    "link": "https://www.pqdi.cc/npc/207310"
+  },
+  {
+    "id": 200241,
+    "name": "Firebone Archmagus",
+    "raw_name": "Firebone_Archmagus",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "61",
+    "level_num": 61,
+    "hp": 24000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200241"
+  },
+  {
+    "id": 200030,
+    "name": "Pestilence Archon",
+    "raw_name": "Pestilence_Archon",
+    "zone": "The Crypt of Decay",
+    "zone_code": "codecay",
+    "level": "61",
+    "level_num": 61,
+    "hp": 26750,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/200030"
+  },
+  {
+    "id": 204050,
+    "name": "a painwrack hobgoblin",
+    "raw_name": "#a_painwrack_hobgoblin",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "60",
+    "level_num": 60,
+    "hp": 19600,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204050"
+  },
+  {
+    "id": 204006,
+    "name": "an agony mephit",
+    "raw_name": "#an_agony_mephit",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "60",
+    "level_num": 60,
+    "hp": 16100,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204006"
+  },
+  {
+    "id": 201493,
+    "name": "the grallok underlord",
+    "raw_name": "#the_grallok_underlord",
+    "zone": "Plane of Justice",
+    "zone_code": "pojustice",
+    "level": "60",
+    "level_num": 60,
+    "hp": 20000,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/201493"
+  },
+  {
+    "id": 208184,
+    "name": "An Undead Doorman",
+    "raw_name": "An_Undead_Doorman",
+    "zone": "Plane of Valor",
+    "zone_code": "povalor",
+    "level": "60",
+    "level_num": 60,
+    "hp": 22200,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/208184"
+  },
+  {
+    "id": 201456,
+    "name": "a blood leech",
+    "raw_name": "#a_blood_leech",
+    "zone": "Plane of Justice",
+    "zone_code": "pojustice",
+    "level": "58",
+    "level_num": 58,
+    "hp": 19000,
+    "glyphed": 0.0,
+    "spectral": 0.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/201456"
+  },
+  {
+    "id": 204049,
+    "name": "a bullyrag bat",
+    "raw_name": "#a_bullyrag_bat",
+    "zone": "Plane of Nightmares",
+    "zone_code": "ponightmare",
+    "level": "56",
+    "level_num": 56,
+    "hp": 31600,
+    "glyphed": 0.0,
+    "spectral": 25.0,
+    "ethereal": 25.0,
+    "link": "https://www.pqdi.cc/npc/204049"
   }
 ];
 
+        let currentTab = 'solo';
         let currentSort = { col: 'glyphed', dir: 'desc' };
 
-        function renderTable(filter = '') {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
+        function switchTab(tab) {
+            currentTab = tab;
             
-            const q = filter.toLowerCase().trim();
-            const filtered = MOBS.filter(m => {
-                return m.name.toLowerCase().includes(q) ||
-                       m.zone.toLowerCase().includes(q) ||
-                       m.zone_code.toLowerCase().includes(q) ||
-                       m.level.toString().includes(q);
-            });
+            // Toggle tab buttons
+            document.getElementById('btn-tab-solo').classList.toggle('active', tab === 'solo');
+            document.getElementById('btn-tab-group').classList.toggle('active', tab === 'group');
 
-            filtered.sort((a, b) => {
-                let valA = a[currentSort.col];
-                let valB = b[currentSort.col];
+            // Toggle info grids & subtitle
+            const soloGrid = document.getElementById('solo-info-grid');
+            const groupGrid = document.getElementById('group-info-grid');
+            const subtitle = document.getElementById('page-subtitle');
 
-                if (typeof valA === 'string') {
-                    valA = valA.toLowerCase();
-                    valB = valB.toLowerCase();
-                    return currentSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                } else {
-                    return currentSort.dir === 'asc' ? valA - valB : valB - valA;
-                }
-            });
+            if (tab === 'solo') {
+                soloGrid.style.display = 'grid';
+                groupGrid.style.display = 'none';
+                subtitle.textContent = 'Non-summoning enemies with high drop rates for solo play (Quarm Database)';
+            } else {
+                soloGrid.style.display = 'none';
+                groupGrid.style.display = 'grid';
+                subtitle.textContent = 'Summoning enemies (<100,000 HP, Level ≤ 70) with high drop rates for 1 group (Quarm Database)';
+            }
 
-            document.getElementById('match-count').textContent = `${filtered.length} of ${MOBS.length} matching mobs`;
-
-            // Update arrow indicators
-            document.querySelectorAll('th').forEach(th => {
-                const arrow = th.querySelector('.sort-arrow');
-                if (th.dataset.col === currentSort.col) {
-                    arrow.textContent = currentSort.dir === 'asc' ? '▲' : '▼';
-                } else {
-                    arrow.textContent = '';
-                }
-            });
-
-            filtered.forEach(m => {
-                const tr = document.createElement('tr');
-                
-                const glyphCell = m.glyphed > 0 
-                    ? `<td class="rate-cell rate-glyph">${m.glyphed.toFixed(1)}%</td>` 
-                    : `<td class="rate-cell rate-dash">—</td>`;
-                    
-                const specCell = m.spectral > 0 
-                    ? `<td class="rate-cell rate-spectral">${m.spectral.toFixed(1)}%</td>` 
-                    : `<td class="rate-cell rate-dash">—</td>`;
-                    
-                const ethCell = m.ethereal > 0 
-                    ? `<td class="rate-cell rate-ethereal">${m.ethereal.toFixed(1)}%</td>` 
-                    : `<td class="rate-cell rate-dash">—</td>`;
-
-                tr.innerHTML = `
-                    <td><strong>${m.zone}</strong> <span style="color:#64748b; font-size:0.85em;">(${m.zone_code})</span></td>
-                    <td><a href="${m.link}" target="_blank" rel="noopener noreferrer" style="color:#1e3c72; font-weight:600; text-decoration:none;">${m.name}</a></td>
-                    <td class="center-cell">${m.level}</td>
-                    <td class="num-cell">${m.hp.toLocaleString()}</td>
-                    ${glyphCell}
-                    ${specCell}
-                    ${ethCell}
-                `;
-                tbody.appendChild(tr);
-            });
+            render();
         }
 
-        // Setup sorting
-        document.querySelectorAll('th').forEach(th => {
-            th.addEventListener('click', () => {
-                const col = th.dataset.col;
-                if (currentSort.col === col) {
-                    currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
-                } else {
-                    currentSort.col = col;
-                    currentSort.dir = (col === 'hp' || col === 'level' || col === 'glyphed' || col === 'spectral' || col === 'ethereal') ? 'desc' : 'asc';
+        function handleHeaderClick(col) {
+            if (currentSort.col === col) {
+                currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.col = col;
+                currentSort.dir = (col === 'hp' || col === 'level' || col === 'glyphed' || col === 'spectral' || col === 'ethereal') ? 'desc' : 'asc';
+            }
+            render();
+        }
+
+        function scrollToZone(zoneId) {
+            const el = document.getElementById(zoneId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function render() {
+            const filterText = document.getElementById('filter-input').value.toLowerCase().trim();
+            const sourceMobs = currentTab === 'solo' ? SOLO_MOBS : GROUP_MOBS;
+            const container = document.getElementById('zone-tables-container');
+            const pillsContainer = document.getElementById('zone-pills');
+            
+            container.innerHTML = '';
+            pillsContainer.innerHTML = '';
+
+            // Group all mobs in the active tab by zone
+            const zoneMap = new Map();
+            sourceMobs.forEach(m => {
+                if (!zoneMap.has(m.zone)) {
+                    zoneMap.set(m.zone, {
+                        zoneName: m.zone,
+                        zoneCode: m.zone_code,
+                        mobs: []
+                    });
                 }
-                renderTable(document.getElementById('filter-input').value);
+                zoneMap.get(m.zone).mobs.push(m);
             });
-        });
+
+            // Convert to array and sort zones by total mob count (descending)
+            const zoneList = Array.from(zoneMap.values());
+            zoneList.sort((a, b) => b.mobs.length - a.mobs.length || a.zoneName.localeCompare(b.zoneName));
+
+            let totalMatching = 0;
+            let matchingZones = 0;
+
+            zoneList.forEach(z => {
+                // Filter mobs within zone
+                let matchingMobs = z.mobs.filter(m => {
+                    if (!filterText) return true;
+                    return m.name.toLowerCase().includes(filterText) ||
+                           m.raw_name.toLowerCase().includes(filterText) ||
+                           m.zone.toLowerCase().includes(filterText) ||
+                           m.zone_code.toLowerCase().includes(filterText) ||
+                           m.level.toString().includes(filterText);
+                });
+
+                if (matchingMobs.length === 0) {
+                    return;
+                }
+
+                totalMatching += matchingMobs.length;
+                matchingZones++;
+
+                // Sort mobs within this zone
+                matchingMobs.sort((a, b) => {
+                    let valA, valB;
+                    if (currentSort.col === 'name') {
+                        valA = a.name.toLowerCase();
+                        valB = b.name.toLowerCase();
+                        return currentSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    } else if (currentSort.col === 'level') {
+                        valA = a.level_num;
+                        valB = b.level_num;
+                        return currentSort.dir === 'asc' ? valA - valB : valB - valA;
+                    } else {
+                        valA = a[currentSort.col] || 0;
+                        valB = b[currentSort.col] || 0;
+                        return currentSort.dir === 'asc' ? valA - valB : valB - valA;
+                    }
+                });
+
+                const zoneSlug = 'zone-' + z.zoneCode.replace(/[^a-z0-9]/gi, '_');
+
+                // Add quick jump pill
+                const pill = document.createElement('button');
+                pill.className = 'zone-nav-pill';
+                pill.textContent = `${z.zoneName} (${matchingMobs.length})`;
+                pill.onclick = () => scrollToZone(zoneSlug);
+                pillsContainer.appendChild(pill);
+
+                // Build Zone Card
+                const card = document.createElement('div');
+                card.className = 'zone-card';
+                card.id = zoneSlug;
+
+                // Zone Header
+                const badgeText = matchingMobs.length === z.mobs.length 
+                    ? `${z.mobs.length} mobs` 
+                    : `${matchingMobs.length} of ${z.mobs.length} mobs`;
+
+                card.innerHTML = `
+                    <div class="zone-header">
+                        <h2 class="zone-title">
+                            <span>${z.zoneName}</span>
+                            <span class="zone-code">${z.zoneCode}</span>
+                        </h2>
+                        <span class="zone-badge">${badgeText}</span>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-col="name" style="width: 36%;">NPC Name <span class="sort-arrow">${currentSort.col === 'name' ? (currentSort.dir === 'asc' ? '▲' : '▼') : ''}</span></th>
+                                    <th data-col="level" class="center-cell" style="width: 12%;">Level <span class="sort-arrow">${currentSort.col === 'level' ? (currentSort.dir === 'asc' ? '▲' : '▼') : ''}</span></th>
+                                    <th data-col="hp" class="num-cell" style="width: 16%;">HP <span class="sort-arrow">${currentSort.col === 'hp' ? (currentSort.dir === 'asc' ? '▲' : '▼') : ''}</span></th>
+                                    <th data-col="glyphed" class="num-cell" style="width: 12%;">Glyphed % <span class="sort-arrow">${currentSort.col === 'glyphed' ? (currentSort.dir === 'asc' ? '▲' : '▼') : ''}</span></th>
+                                    <th data-col="spectral" class="num-cell" style="width: 12%;">Spectral % <span class="sort-arrow">${currentSort.col === 'spectral' ? (currentSort.dir === 'asc' ? '▲' : '▼') : ''}</span></th>
+                                    <th data-col="ethereal" class="num-cell" style="width: 12%;">Ethereal % <span class="sort-arrow">${currentSort.col === 'ethereal' ? (currentSort.dir === 'asc' ? '▲' : '▼') : ''}</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${matchingMobs.map(m => {
+                                    const glyphCell = m.glyphed > 0 
+                                        ? `<td class="rate-cell rate-glyph">${m.glyphed.toFixed(1)}%</td>` 
+                                        : `<td class="rate-cell rate-dash">—</td>`;
+                                        
+                                    const specCell = m.spectral > 0 
+                                        ? `<td class="rate-cell rate-spectral">${m.spectral.toFixed(1)}%</td>` 
+                                        : `<td class="rate-cell rate-dash">—</td>`;
+                                        
+                                    const ethCell = m.ethereal > 0 
+                                        ? `<td class="rate-cell rate-ethereal">${m.ethereal.toFixed(1)}%</td>` 
+                                        : `<td class="rate-cell rate-dash">—</td>`;
+
+                                    return `
+                                        <tr>
+                                            <td><a href="${m.link}" target="_blank" rel="noopener noreferrer" style="color:#1e3c72; font-weight:600; text-decoration:none;">${m.name}</a></td>
+                                            <td class="center-cell">${m.level}</td>
+                                            <td class="num-cell">${m.hp.toLocaleString()}</td>
+                                            ${glyphCell}
+                                            ${specCell}
+                                            ${ethCell}
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Add click listener for headers in this table
+                card.querySelectorAll('th').forEach(th => {
+                    th.addEventListener('click', () => {
+                        handleHeaderClick(th.dataset.col);
+                    });
+                });
+
+                container.appendChild(card);
+            });
+
+            if (totalMatching === 0) {
+                container.innerHTML = `
+                    <div class="no-matches">
+                        <p>No enemies match "<strong>${filterText}</strong>" in this tab.</p>
+                    </div>
+                `;
+            }
+
+            const matchCountEl = document.getElementById('match-count');
+            matchCountEl.textContent = `${totalMatching} of ${sourceMobs.length} matching mobs (${matchingZones} zones)`;
+        }
 
         // Setup filter input
-        document.getElementById('filter-input').addEventListener('input', (e) => {
-            renderTable(e.target.value);
+        document.getElementById('filter-input').addEventListener('input', () => {
+            render();
         });
 
         // Initial render
-        renderTable();
+        render();
     </script>
 </body>
 </html>
