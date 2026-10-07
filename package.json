@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "export-data": "node export-data.js"
+    "export-data": "python scripts/export_quarm_data.py",
+    "import-db": "python scripts/import_quarm_db.py",
+    "export-data:mysql": "node export-data.js"
   },
   "keywords": [
     "everquest",

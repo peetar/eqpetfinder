@@ -5,7 +5,17 @@
 
 # Database dumps
 dump/
+db_extracted/
 *.sql
+*.tar.gz
+*.db
+
+# Generated secondary datasets and exports
+loottables.json
+npcs_enriched.json
+items_summary.json
+*.xlsx
+*.csv
 
 # Node modules
 node_modules/

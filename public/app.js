@@ -26,6 +26,7 @@ const modalSearch = document.getElementById('modal-search');
 const modalNpcCount = document.getElementById('modal-npc-count');
 const modalNpcTbody = document.getElementById('modal-npc-tbody');
 const modalNpcTable = document.getElementById('modal-npc-table');
+const modalAllZonesBtn = document.getElementById('modal-all-zones-btn');
 
 const DEFAULT_CHARM_CHANGE_DATE = new Date('2026-10-02T00:00:00');
 const DEFAULT_CHARM_SPELL_BEFORE = "Boltran's Agacerie";
@@ -47,6 +48,7 @@ let currentAverages = { strength: null, attack: null, accuracy: null };
 let zems = {};
 let modalNpcs = [];
 let modalSort = { column: 'xphp', direction: 'desc' };
+let isAllZonesMode = false;
 
 // Initialize the app
 async function init() {
@@ -235,6 +237,7 @@ function setupEventListeners() {
     });
     
     modalSearch.addEventListener('input', renderModalNPCs);
+    modalAllZonesBtn.addEventListener('click', toggleAllZonesSearch);
 }
 
 // Update search button state
@@ -900,43 +903,79 @@ function closeXpModal() {
     xpModal.style.display = 'none';
 }
 
-// Modal: Open & Load
+// Helper to retrieve the long name of a zone
+function getZoneLongName(shortName) {
+    if (!shortName) return 'Unknown';
+    const z = zones.find(x => x.short_name.toLowerCase() === shortName.toLowerCase());
+    return z ? z.long_name : shortName;
+}
+
+// Modal: Close
+function closeXpModal() {
+    xpModal.style.display = 'none';
+}
+
+// Modal: Open
 async function openXpModal() {
     const zone = zoneSelect.value;
     if (!zone) return;
     
     xpModal.style.display = 'flex';
+    isAllZonesMode = false; // Always default to current zone on open
+    await loadModalData();
+}
+
+// Toggle between current zone and all zones search
+async function toggleAllZonesSearch() {
+    isAllZonesMode = !isAllZonesMode;
+    await loadModalData();
+}
+
+// Modal: Open & Load
+async function loadModalData() {
     modalSearch.value = '';
-    modalNpcTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Loading targets...</td></tr>';
+    modalNpcTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Loading targets...</td></tr>';
     
-    try {
-        const response = await fetch(`${API_URL}/kill-targets/${zone}`);
-        if (!response.ok) throw new Error('Failed to fetch kill targets');
+    const playerLevel = parseInt(playerLevelSelect.value);
+    
+    // Configure modal UI based on Mode
+    if (isAllZonesMode) {
+        modalAllZonesBtn.textContent = 'Search Current Zone';
+        modalZoneInfo.textContent = 'Zone: All Zones | ZEM: Variable';
+        zemWarningAlert.style.display = 'none';
+    } else {
+        modalAllZonesBtn.textContent = 'Search All Zones';
+        const zone = zoneSelect.value;
+        const selectedZoneOption = zoneSelect.options[zoneSelect.selectedIndex];
+        const selectedZoneText = selectedZoneOption ? selectedZoneOption.textContent : 'Unknown';
         
-        const rawNpcs = await response.json();
-        
-        // ZEM lookup
         const zoneLower = zone.toLowerCase();
         const zemEntry = zems[zoneLower];
         let zem = 1.0;
-        let expansion = 0;
         let zemFound = false;
 
         if (zemEntry) {
             zem = zemEntry.zem;
-            expansion = zemEntry.expansion;
             zemFound = true;
         }
         
-        // Toggle alert warning if ZEM not found
         zemWarningAlert.style.display = zemFound ? 'none' : 'block';
-        
-        // Update header info
-        const selectedZoneOption = zoneSelect.options[zoneSelect.selectedIndex];
-        const selectedZoneText = selectedZoneOption ? selectedZoneOption.textContent : 'Unknown';
         modalZoneInfo.textContent = `Zone: ${selectedZoneText} | ZEM: ${zem.toFixed(2)}`;
+    }
+    
+    try {
+        let response;
+        if (isAllZonesMode) {
+            response = await fetch(`${API_URL}/all-kill-targets?playerLevel=${playerLevel}`);
+        } else {
+            const zone = zoneSelect.value;
+            response = await fetch(`${API_URL}/kill-targets/${zone}`);
+        }
         
-        const playerLevel = parseInt(playerLevelSelect.value);
+        if (!response.ok) throw new Error('Failed to fetch kill targets');
+        const rawNpcs = await response.json();
+        
+        const activeZone = zoneSelect.value;
         
         // Process & filter NPCs
         modalNpcs = [];
@@ -956,9 +995,20 @@ async function openXpModal() {
             const minHP = npc.hp;
             const maxHP = Math.round(npc.hp / minLevel * maxLevel);
             
+            // ZEM lookup (uses specific zone for cross-zone search)
+            const npcZone = npc.zone || activeZone;
+            const zemEntry = zems[npcZone.toLowerCase()];
+            let npcZem = 1.0;
+            let npcExpansion = 0;
+
+            if (zemEntry) {
+                npcZem = zemEntry.zem;
+                npcExpansion = zemEntry.expansion;
+            }
+            
             // XP
-            const minXP = calculateXP(minLevel, playerLevel, npc.class, expansion, zem);
-            const maxXP = calculateXP(maxLevel, playerLevel, npc.class, expansion, zem);
+            const minXP = calculateXP(minLevel, playerLevel, npc.class, npcExpansion, npcZem);
+            const maxXP = calculateXP(maxLevel, playerLevel, npc.class, npcExpansion, npcZem);
             
             // Averages for Exp/HP
             const avgXP = (minXP + maxXP) / 2;
@@ -966,10 +1016,11 @@ async function openXpModal() {
             const xphp = avgHP > 0 ? avgXP / avgHP : 0;
             
             // Generate XP calculation hover text for the lowest level in range
-            const xp_hover = getXPCalculationHover(minLevel, playerLevel, npc.class, expansion, zem);
+            const xp_hover = getXPCalculationHover(minLevel, playerLevel, npc.class, npcExpansion, npcZem);
             
             modalNpcs.push({
                 ...npc,
+                zone: npcZone,
                 minLevel,
                 maxLevel,
                 minCon,
@@ -994,7 +1045,7 @@ async function openXpModal() {
         renderModalNPCs();
     } catch (error) {
         console.error('Error loading kill targets:', error);
-        modalNpcTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red; padding: 20px;">Error loading data.</td></tr>';
+        modalNpcTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red; padding: 20px;">Error loading data.</td></tr>';
     }
 }
 
@@ -1021,6 +1072,10 @@ function sortModalNPCs(column, direction, rerender = true) {
             case 'name':
                 aVal = a.name.toLowerCase();
                 bVal = b.name.toLowerCase();
+                break;
+            case 'zone':
+                aVal = getZoneLongName(a.zone).toLowerCase();
+                bVal = getZoneLongName(b.zone).toLowerCase();
                 break;
             case 'class':
                 aVal = NPC_CLASSES[a.class] || 'Unknown';
@@ -1088,7 +1143,7 @@ function renderModalNPCs() {
     updateModalSortArrows();
     
     if (filtered.length === 0) {
-        modalNpcTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #666;">No mobs match the search criteria.</td></tr>';
+        modalNpcTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #666;">No mobs match the search criteria.</td></tr>';
         return;
     }
     
@@ -1122,6 +1177,7 @@ function renderModalNPCs() {
         
         row.innerHTML = `
             <td class="col-name npc-name"><a href="https://www.pqdi.cc/npc/${npc.id}" target="_blank" rel="noopener noreferrer">${escapeHtml(npc.name)}</a></td>
+            <td class="col-zone">${escapeHtml(getZoneLongName(npc.zone))}</td>
             <td class="col-class">${className}</td>
             <td class="col-level">${levelBadges}</td>
             <td class="col-hp">${hpDisplay}</td>

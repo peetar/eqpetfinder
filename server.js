@@ -307,6 +307,172 @@ app.get('/api/kill-targets/:zone', (req, res) => {
   }
 });
 
+const CON_RED = 'Red';
+const CON_YELLOW = 'Yellow';
+const CON_WHITE = 'White';
+const CON_BLUE = 'Blue';
+const CON_LIGHTBLUE = 'Light Blue';
+const CON_GREEN = 'Green';
+
+function getLevelConBackend(mylevel, iOtherLevel) {
+    const diff = iOtherLevel - mylevel;
+
+    if (diff === 0) return CON_WHITE;
+    if (diff >= 1 && diff <= 2) return CON_YELLOW;
+    if (diff >= 3) return CON_RED;
+
+    if (mylevel <= 7) {
+        if (diff <= -4) return CON_GREEN;
+        return CON_BLUE;
+    }
+    if (mylevel <= 8) {
+        if (diff <= -5) return CON_GREEN;
+        if (diff <= -4) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 12) {
+        if (diff <= -6) return CON_GREEN;
+        if (diff <= -4) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 16) {
+        if (diff <= -7) return CON_GREEN;
+        if (diff <= -5) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 20) {
+        if (diff <= -8) return CON_GREEN;
+        if (diff <= -6) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 24) {
+        if (diff <= -9) return CON_GREEN;
+        if (diff <= -7) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 28) {
+        if (diff <= -10) return CON_GREEN;
+        if (diff <= -8) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 30) {
+        if (diff <= -11) return CON_GREEN;
+        if (diff <= -9) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 32) {
+        if (diff <= -12) return CON_GREEN;
+        if (diff <= -9) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 36) {
+        if (diff <= -13) return CON_GREEN;
+        if (diff <= -10) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 40) {
+        if (diff <= -14) return CON_GREEN;
+        if (diff <= -11) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 44) {
+        if (diff <= -16) return CON_GREEN;
+        if (diff <= -12) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 48) {
+        if (diff <= -17) return CON_GREEN;
+        if (diff <= -13) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 52) {
+        if (diff <= -18) return CON_GREEN;
+        if (diff <= -14) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 54) {
+        if (diff <= -19) return CON_GREEN;
+        if (diff <= -15) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 56) {
+        if (diff <= -20) return CON_GREEN;
+        if (diff <= -15) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 60) {
+        if (diff <= -21) return CON_GREEN;
+        if (diff <= -16) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 61) {
+        if (diff <= -19) return CON_GREEN;
+        if (diff <= -14) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (mylevel <= 62) {
+        if (diff <= -17) return CON_GREEN;
+        if (diff <= -12) return CON_LIGHTBLUE;
+        return CON_BLUE;
+    }
+    if (diff <= -16) return CON_GREEN;
+    if (diff <= -11) return CON_LIGHTBLUE;
+    return CON_BLUE;
+}
+
+// Get all killable targets across all zones, filtered by player level (to exclude green cons)
+app.get('/api/all-kill-targets', (req, res) => {
+  const playerLevel = parseInt(req.query.playerLevel || 60, 10);
+  
+  try {
+    const allNpcs = [];
+    
+    // We loop over all zones in the dictionary
+    for (const [zone, zoneNpcs] of Object.entries(npcData.npcsByZone)) {
+      if (!zoneNpcs || zoneNpcs.length === 0) continue;
+      
+      const filtered = zoneNpcs.filter(npc => {
+        // Basic filters
+        if (npc.hp <= 0 || npc.level <= 0) return false;
+        
+        // Exclude raid bosses/GMs by filtering out anything > 150k HP
+        if (npc.hp > 150000) return false;
+        
+        // Exclude merchants and bankers (classes 20, 21, 40, 41, 60, 61)
+        if ([20, 21, 40, 41, 60, 61].includes(npc.class)) return false;
+        
+        // Bodytype filters - always exclude Trap (66), Timer (67), Atenha Ra (11)
+        if ([11, 66, 67].includes(npc.bodytype)) return false;
+        
+        // Client-side con checks: exclude green cons to reduce payload size
+        const maxLevel = npc.maxlevel > npc.level ? npc.maxlevel : npc.level;
+        const maxCon = getLevelConBackend(playerLevel, maxLevel);
+        if (maxCon === 'Green') return false;
+        
+        return true;
+      });
+      
+      filtered.forEach(npc => {
+        allNpcs.push({
+          id: npc.id,
+          name: npc.name,
+          level: npc.level,
+          maxlevel: npc.maxlevel,
+          hp: npc.hp,
+          class: npc.class,
+          bodytype: npc.bodytype,
+          zone: zone // Store the zone short name
+        });
+      });
+    }
+    
+    res.json(allNpcs);
+  } catch (error) {
+    console.error('Error fetching all kill targets:', error);
+    res.status(500).json({ error: 'Failed to fetch all kill targets' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', dataSource: 'json', zones: npcData.zones.length });

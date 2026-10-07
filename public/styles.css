@@ -614,6 +614,8 @@ th.modal-sortable:hover {
 
 #modal-npc-table[data-sorted-column="name"] th[data-sort="name"],
 #modal-npc-table[data-sorted-column="name"] td.col-name,
+#modal-npc-table[data-sorted-column="zone"] th[data-sort="zone"],
+#modal-npc-table[data-sorted-column="zone"] td.col-zone,
 #modal-npc-table[data-sorted-column="class"] th[data-sort="class"],
 #modal-npc-table[data-sorted-column="class"] td.col-class,
 #modal-npc-table[data-sorted-column="level"] th[data-sort="level"],
